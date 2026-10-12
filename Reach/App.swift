@@ -17,7 +17,7 @@ struct RootView: View {
     @State private var tempted = false
     @AppStorage("introSeen") private var introSeen = false
     var body: some View {
-        ZStack {
+        VStack(spacing: 0) {
             Group {
                 switch tab {
                 case 1: BodyView()
@@ -26,8 +26,7 @@ struct RootView: View {
                 case 4: ResolveView()
                 default: TodayView(tab: $tab, tempted: $tempted)
                 }
-            }
-        }.safeAreaInset(edge: .bottom, spacing: 0) {
+            }.frame(maxWidth: .infinity, maxHeight: .infinity)
             HStack(spacing: 0) {
                 tabButton(0, "Today", "hand", "hand.raised")
                 tabButton(1, "Body", "skull", "figure.strengthtraining.traditional")
@@ -35,7 +34,7 @@ struct RootView: View {
                 tabButton(3, "Rewire", "eye", "eye")
                 tabButton(4, "Resolve", "sword", "bolt")
             }.padding(.vertical, 10).padding(.horizontal, 5).glass().padding(.horizontal, 16).padding(.bottom, 6)
-        }.foregroundColor(Ink.ivory)
+        }.background(CanvasBackground()).foregroundColor(Ink.ivory)
             .sheet(isPresented: $onboarding) { ProfileView() }
             .fullScreenCover(isPresented: $tempted) { TemptedView() }
             .onAppear { onboarding = !introSeen && !store.data.profile.configured; introSeen = true }

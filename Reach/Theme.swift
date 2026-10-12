@@ -47,7 +47,11 @@ struct CanvasBackground: View {
 struct InkIcon: View {
     var name: String
     var size: CGFloat = 68
-    var body: some View { Image(name).resizable().scaledToFit().frame(width: size, height: size).blendMode(.screen).accessibilityHidden(true) }
+    var body: some View {
+        Image(name).resizable().scaledToFit()
+            .mask(Image(name).resizable().scaledToFit().brightness(-0.07).luminanceToAlpha())
+            .frame(width: size, height: size).accessibilityHidden(true)
+    }
 }
 struct Page<Content: View>: View {
     var eyebrow: String
