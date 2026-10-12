@@ -23,8 +23,10 @@ for day in 1...14 {
     meals.append(Meal(date: date, name: "Complete day", grams: 100, kcalPer100: 2200, proteinPer100: 100))
     weights.append(WeighIn(date: date, kg: 80))
 }
-check(abs(Fitness.calibratedTDEE(meals: meals, weights: weights)! - 2200) < 0.1, "Stable weight yields logged maintenance")
-meals.removeLast(); check(Fitness.calibratedTDEE(meals: meals, weights: weights) == nil, "Missing intake day rejects calibration")
+check(Fitness.calibratedTDEE(meals: meals, weights: weights) == nil, "Unconfirmed intake days reject calibration")
+let completeDays = meals.map(\.date)
+check(abs(Fitness.calibratedTDEE(meals: meals, weights: weights, completeDays: completeDays)! - 2200) < 0.1, "Stable weight yields logged maintenance")
+meals.removeLast(); check(Fitness.calibratedTDEE(meals: meals, weights: weights, completeDays: completeDays) == nil, "Missing intake day rejects calibration")
 check(allQuotes.count >= 230, "Hundreds of quotes bundled")
 check(Set(allQuotes.map(\.id)).count == allQuotes.count, "Unique quote identities")
 check(Set(allQuotes.map(\.words)).count == allQuotes.count, "No duplicate quote text")

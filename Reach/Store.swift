@@ -35,7 +35,14 @@ final class Store: ObservableObject {
     var weekWeight: Double? {
         Fitness.mean(data.weights.filter { $0.date >= Date().addingTimeInterval(-7 * 86400) }.map(\.kg))
     }
-    var observedTDEE: Double? { Fitness.calibratedTDEE(meals: data.meals, weights: data.weights) }
+    var observedTDEE: Double? { Fitness.calibratedTDEE(meals: data.meals, weights: data.weights, completeDays: data.completedIntakeDays ?? []) }
+    func intakeComplete(_ date: Date) -> Bool { (data.completedIntakeDays ?? []).contains { Calendar.current.isDate($0, inSameDayAs: date) } }
+    func toggleIntakeComplete(_ date: Date) {
+        let day = Calendar.current.startOfDay(for: date)
+        if intakeComplete(day) { data.completedIntakeDays?.removeAll { Calendar.current.isDate($0, inSameDayAs: day) } }
+        else { if data.completedIntakeDays == nil { data.completedIntakeDays = [] }; data.completedIntakeDays?.append(day) }
+        save()
+    }
     var dayKey: String { ISO8601DateFormatter().string(from: Calendar.current.startOfDay(for: Date())) }
     func done(_ habit: String) -> Bool { data.habits[dayKey, default: []].contains(habit) }
     func toggle(_ habit: String) {

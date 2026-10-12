@@ -7,6 +7,7 @@ struct BodyView: View {
     @State private var cut = false
     @State private var edit = false
     @State private var review = false
+    @State private var history = false
     var body: some View {
         Page(eyebrow: "01 / Body", title: "Built. Not wished.", subtitle: "Measure honestly. Adjust patiently.") {
             HStack { InkIcon(name: "skull", size: 92); Spacer(); VStack(alignment: .trailing) { Text("DAILY FUEL").font(.system(size: 10, design: .monospaced)).tracking(2).foregroundColor(Ink.muted); Text("\(Int(store.calories))").font(.system(size: 52, weight: .medium, design: .rounded)); Text(store.data.profile.configured ? "of ~\(Int(store.data.profile.target)) kcal" : "Set your profile to see a target").font(.caption).foregroundColor(Ink.muted) } }
@@ -17,6 +18,7 @@ struct BodyView: View {
                 Metric(label: "Weight", value: String(format: "%.1f", store.data.profile.weight), unit: "kg · last entry")
             }.padding(.vertical, 14)
             HStack { Action(title: "Log food", symbol: "plus") { food = true }; Action(title: "Weigh in", symbol: "plus") { weigh = true } }
+            Button("Review daily intake & mark complete") { history = true }.font(.system(size: 13)).foregroundColor(Ink.blue)
             Button { cut = true } label: {
                 HStack(spacing: 18) {
                     InkIcon(name: "skull", size: 64)
@@ -38,7 +40,7 @@ struct BodyView: View {
             if !store.todayMeals.isEmpty {
                 Text("TODAY’S LOG").font(.system(size: 10, design: .monospaced)).tracking(2).foregroundColor(Ink.muted)
                 ForEach(store.todayMeals) { meal in
-                    HStack { VStack(alignment: .leading, spacing: 5) { Text(meal.name).font(.system(size: 16)); Text("\(Int(meal.grams)) g · \(Int(meal.protein)) g protein").font(.caption).foregroundColor(Ink.muted) }; Spacer(); Text("\(Int(meal.calories))").font(.system(size: 19, design: .rounded)); Button { store.data.meals.removeAll { $0.id == meal.id }; store.save() } label: { Image(systemName: "minus.circle").foregroundColor(Ink.muted) }.accessibilityLabel("Delete \(meal.name)") }.padding(.vertical, 8)
+                    HStack { VStack(alignment: .leading, spacing: 5) { Text(meal.name).font(.system(size: 16)); Text("\(Int(meal.grams)) g · \(Int(meal.protein)) g protein").font(.caption).foregroundColor(Ink.muted) }; Spacer(); Text("\(Int(meal.calories))").font(.system(size: 19, design: .rounded)); Button { store.data.meals.removeAll { $0.id == meal.id }; store.data.completedIntakeDays?.removeAll { Calendar.current.isDate($0, inSameDayAs: meal.date) }; store.save() } label: { Image(systemName: "minus.circle").foregroundColor(Ink.muted) }.accessibilityLabel("Delete \(meal.name)") }.padding(.vertical, 8)
                 }
             }
             if !store.data.weights.isEmpty {
@@ -48,7 +50,7 @@ struct BodyView: View {
                 }
             }
             Button("Edit profile & activity") { edit = true }.font(.caption)
-        }.sheet(isPresented: $food) { FoodView() }.sheet(isPresented: $weigh) { WeightView() }.sheet(isPresented: $cut) { CutView() }.sheet(isPresented: $edit) { ProfileView() }
+        }.sheet(isPresented: $food) { FoodView() }.sheet(isPresented: $weigh) { WeightView() }.sheet(isPresented: $cut) { CutView() }.sheet(isPresented: $edit) { ProfileView() }.sheet(isPresented: $history) { FoodHistoryView() }
             .alert("Calibration review", isPresented: $review) {
                 Button("Keep current plan", role: .cancel) {}
             } message: { Text("Compare your observed estimate to the equation and review logging accuracy first. Update activity in your profile if the difference persists for several weeks. The app does not silently change your calorie target.") }

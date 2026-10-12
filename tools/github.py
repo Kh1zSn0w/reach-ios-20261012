@@ -6,7 +6,9 @@ def token():
     return dict(x.split('=',1) for x in p.stdout.splitlines() if '=' in x)['password']
 def api(path, data=None, method=None):
     req=urllib.request.Request('https://api.github.com'+path,data=None if data is None else json.dumps(data).encode(),headers={'Authorization':'Bearer '+token(),'Accept':'application/vnd.github+json','User-Agent':'REACH-builder'},method=method)
-    with urllib.request.urlopen(req,timeout=60) as r: return json.load(r)
+    with urllib.request.urlopen(req,timeout=60) as r:
+        body=r.read()
+        return json.loads(body) if body else {}
 command=sys.argv[1]
 if command=='check':
     print(json.dumps({'account':api('/user')['login']}))
@@ -16,6 +18,9 @@ elif command=='public':
 elif command=='repo':
     r=api('/repos/'+REPO)
     print(json.dumps({k:r.get(k) for k in ['full_name','private','disabled','archived','visibility']}))
+elif command=='cancel':
+    api('/repos/'+REPO+'/actions/runs/'+sys.argv[2]+'/cancel',{},'POST')
+    print('Cancelled superseded run '+sys.argv[2])
 elif command=='create':
     try: r=api('/repos/'+REPO)
     except urllib.error.HTTPError as e:

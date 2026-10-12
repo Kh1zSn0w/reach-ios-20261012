@@ -58,6 +58,7 @@ struct Snapshot: Codable {
     var habits: [String: [String]] = [:]
     var favoriteQuotes: [String] = []
     var start = Date()
+    var completedIntakeDays: [Date]? = []
 }
 
 enum Fitness {
@@ -65,14 +66,15 @@ enum Fitness {
         values.isEmpty ? nil : values.reduce(0, +) / Double(values.count)
     }
     // Require complete intake days and two weeks of weigh-ins before offering calibration.
-    static func calibratedTDEE(meals: [Meal], weights: [WeighIn], now: Date = Date()) -> Double? {
+    static func calibratedTDEE(meals: [Meal], weights: [WeighIn], completeDays: [Date] = [], now: Date = Date()) -> Double? {
         let cal = Calendar.current
         let today = cal.startOfDay(for: now)
         guard let start = cal.date(byAdding: .day, value: -14, to: today),
               let middle = cal.date(byAdding: .day, value: -7, to: today) else { return nil }
         let food = meals.filter { $0.date >= start && $0.date < today }
         let days = Set(food.map { cal.startOfDay(for: $0.date) })
-        guard days.count == 14 else { return nil }
+        let confirmed = Set(completeDays.filter { $0 >= start && $0 < today }.map { cal.startOfDay(for: $0) })
+        guard days.count == 14, confirmed.count == 14 else { return nil }
         let first = weights.filter { $0.date >= start && $0.date < middle }.map(\.kg)
         let second = weights.filter { $0.date >= middle && $0.date < today }.map(\.kg)
         guard first.count >= 4, second.count >= 4, let a = mean(first), let b = mean(second) else { return nil }

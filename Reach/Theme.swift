@@ -8,8 +8,12 @@ enum Ink {
     static let background = Color(red: 0.02, green: 0.035, blue: 0.065)
 }
 struct Glass: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) var reduceTransparency
     func body(content: Content) -> some View {
         Group {
+            if reduceTransparency {
+                content.background(Color(red: 0.07, green: 0.10, blue: 0.16), in: RoundedRectangle(cornerRadius: 26))
+            } else {
             #if compiler(>=6.2)
             if #available(iOS 26.0, *) {
                 content.glassEffect(.regular.tint(Color.blue.opacity(0.10)), in: RoundedRectangle(cornerRadius: 26))
@@ -17,6 +21,7 @@ struct Glass: ViewModifier {
             #else
             fallback(content)
             #endif
+            }
         }
     }
     func fallback(_ content: Content) -> some View {
