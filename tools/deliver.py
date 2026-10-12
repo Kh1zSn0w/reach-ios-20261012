@@ -10,6 +10,7 @@ with zipfile.ZipFile(source) as ipa:
     info=plistlib.loads(ipa.read('Payload/Reach.app/Info.plist'))
     assert info['CFBundleIdentifier']=='app.reach.personal'
     assert info['CFBundleShortVersionString']=='1.1'
+    assert info['CFBundleVersion']=='2'
     assert info['MinimumOSVersion']=='15.0'
     executable=ipa.read('Payload/Reach.app/'+info['CFBundleExecutable'])
     magic,cpu=struct.unpack_from('<II',executable)
@@ -24,6 +25,6 @@ if target.exists() and hashlib.sha256(target.read_bytes()).hexdigest()!=digest:
     target=target.with_name('REACH-1.1-'+digest[:8]+'.ipa')
 shutil.copy2(source,target)
 assert hashlib.sha256(target.read_bytes()).hexdigest()==digest
-report={'file':str(target),'size_bytes':target.stat().st_size,'sha256':digest,'bundle_id':info['CFBundleIdentifier'],'version':info['CFBundleShortVersionString'],'minimum_ios':info['MinimumOSVersion'],'architecture':'arm64','signing':'unsigned, ready for a sideloading signer','installed_on_phone':False}
+report={'file':str(target),'size_bytes':target.stat().st_size,'sha256':digest,'bundle_id':info['CFBundleIdentifier'],'version':info['CFBundleShortVersionString'],'build':info['CFBundleVersion'],'minimum_ios':info['MinimumOSVersion'],'architecture':'arm64','signing':'unsigned, ready for a sideloading signer','installed_on_phone':False}
 (target.parent/(target.stem+'-verification.json')).write_text(json.dumps(report,indent=2))
 print(json.dumps(report,indent=2))
