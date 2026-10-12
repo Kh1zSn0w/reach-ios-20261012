@@ -1,0 +1,45 @@
+name: Reach
+options:
+  deploymentTarget:
+    iOS: '15.0'
+settings:
+  base:
+    SWIFT_VERSION: '5.0'
+    PRODUCT_BUNDLE_IDENTIFIER: app.reach.personal
+    CODE_SIGNING_ALLOWED: NO
+    TARGETED_DEVICE_FAMILY: '1,2'
+    MARKETING_VERSION: '1.0'
+    CURRENT_PROJECT_VERSION: '1'
+targets:
+  Reach:
+    type: application
+    platform: iOS
+    sources: [Reach]
+    info:
+      path: Reach/Info.plist
+      properties:
+        CFBundleDisplayName: REACH
+        UILaunchScreen: {}
+        UIUserInterfaceStyle: Dark
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        NSCameraUsageDescription: Scan food barcodes to look up nutrition labels.
+    settings:
+      base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+  ReachUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: Reach
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  Reach:
+    build:
+      targets:
+        Reach: all
+    test:
+      targets: [ReachUITests]

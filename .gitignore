@@ -1,0 +1,7 @@
+build/
+simbuild/
+artifacts/
+*.xcodeproj/
+*.xcresult/
+*.log
+__pycache__/
