@@ -23,9 +23,9 @@ struct CaffeineView: View {
             ForEach(Array(store.doses.sorted { $0.date > $1.date }.prefix(30))) { dose in
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 5) { Text(dose.name).font(.system(size: 14, weight: .medium)); Text(dose.date.formatted(date: .abbreviated, time: .shortened)).font(.system(size: 11)).foregroundColor(Ink.muted) }
-                    Spacer(); Text("\(Int(dose.mg)) mg").font(.system(size: 14)).monospacedDigit()
+                    Spacer(); Text("\(Int(dose.mg)) mg").font(.system(size: 14)).monospacedDigit().accessibilityIdentifier("caffeineDoseRow")
                     Button { store.data.caffeine?.removeAll { $0.id == dose.id }; store.save() } label: { Image(systemName: "minus.circle").foregroundColor(Ink.muted) }.accessibilityLabel("Delete caffeine dose")
-                }.padding(.vertical, 9).accessibilityIdentifier("caffeineDoseRow")
+                }.padding(.vertical, 9)
             }
             Button("Model, assumptions & sources") { method = true }.font(.system(size: 13))
         }.sheet(isPresented: $log) { CaffeineLog() }.sheet(isPresented: $settings) { CaffeineSettingsView() }.sheet(isPresented: $method) { CaffeineMethod() }
