@@ -41,12 +41,12 @@ jobs:
           DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(x["udid"] for k,v in d["devices"].items() if "iOS" in k for x in v if "iPhone" in x["name"]))')
           echo "$DEVICE" > simulator.txt
           xcodebuild -project Reach.xcodeproj -scheme Reach -configuration Debug -destination "platform=iOS Simulator,id=$DEVICE" -derivedDataPath simbuild CODE_SIGNING_ALLOWED=NO -resultBundlePath UITestResults.xcresult test 2>&1 | tee uitest.log
-          xcrun simctl io "$DEVICE" screenshot output/REACH-preview.png
       - name: Export screen captures
         if: always()
         run: |
           if [ -d UITestResults.xcresult ]; then
             xcrun xcresulttool export attachments --path UITestResults.xcresult --output-path output/screenshots
+            python3 tools/preview.py
           fi
       - uses: actions/upload-artifact@v4
         if: always()
