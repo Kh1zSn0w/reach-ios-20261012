@@ -17,7 +17,7 @@ struct RootView: View {
     @State private var tempted = false
     @AppStorage("introSeen") private var introSeen = false
     var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack {
             Group {
                 switch tab {
                 case 1: BodyView()
@@ -27,6 +27,7 @@ struct RootView: View {
                 default: TodayView(tab: $tab, tempted: $tempted)
                 }
             }
+        }.safeAreaInset(edge: .bottom, spacing: 0) {
             HStack(spacing: 0) {
                 tabButton(0, "Today", "hand", "hand.raised")
                 tabButton(1, "Body", "skull", "figure.strengthtraining.traditional")

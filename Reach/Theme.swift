@@ -47,7 +47,7 @@ struct CanvasBackground: View {
 struct InkIcon: View {
     var name: String
     var size: CGFloat = 68
-    var body: some View { Image(name).resizable().scaledToFit().frame(width: size, height: size).accessibilityHidden(true) }
+    var body: some View { Image(name).resizable().scaledToFit().frame(width: size, height: size).blendMode(.screen).accessibilityHidden(true) }
 }
 struct Page<Content: View>: View {
     var eyebrow: String
@@ -64,7 +64,7 @@ struct Page<Content: View>: View {
                 }.padding(.top, 24)
                 content
                 Text("REACH / BUILD YOURSELF").font(.system(size: 9, design: .monospaced)).tracking(3).foregroundColor(Ink.muted.opacity(0.5)).padding(.vertical, 16)
-            }.padding(.horizontal, 22).padding(.bottom, 100).frame(maxWidth: 650)
+            }.padding(.horizontal, 22).padding(.bottom, 32).frame(maxWidth: 650)
         }.background(CanvasBackground())
     }
 }
