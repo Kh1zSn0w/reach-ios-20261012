@@ -23,9 +23,7 @@ struct LinePlot: View {
     var high: Double { max(low + 1, max((points + secondary).map(\.value).max() ?? 1, upper.map(\.value).max() ?? 0) + (zeroBased ? 10 : 0.5)) }
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if let point = selected {
-                Text("\(point.date.formatted(date: timeLabels ? .omitted : .abbreviated, time: timeLabels ? .shortened : .omitted)) · \(String(format: timeLabels ? "%.0f" : "%.1f", point.value)) \(unit)").font(.system(size: 12, weight: .medium)).monospacedDigit()
-            }
+            Text(selectionLabel).font(.system(size: 12, weight: .medium)).monospacedDigit().foregroundColor(Ink.muted).frame(height: 16, alignment: .leading)
             HStack(spacing: 8) {
                 VStack(alignment: .trailing) { Text(number(high)); Spacer(); Text(number((low + high) / 2)); Spacer(); Text(number(low)) }.font(.system(size: 10)).foregroundColor(Ink.muted).frame(width: 34).padding(.vertical, 2)
                 GeometryReader { geometry in
@@ -57,7 +55,8 @@ struct LinePlot: View {
                             context.stroke(line, with: .color(Ink.muted), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
                             context.fill(Path(ellipseIn: CGRect(x: p.x - 4, y: p.y - 4, width: 8, height: 8)), with: .color(color))
                         }
-                    }.contentShape(Rectangle()).gesture(DragGesture(minimumDistance: 0).onChanged { value in
+                    }.contentShape(Rectangle()).simultaneousGesture(DragGesture(minimumDistance: 0).onChanged { value in
+                        guard abs(value.translation.height) <= abs(value.translation.width) + 8 else { return }
                         let fraction = min(1, max(0, value.location.x / max(geometry.size.width, 1)))
                         let date = start.addingTimeInterval(Double(fraction) * end.timeIntervalSince(start))
                         selected = points.min { abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date)) }
@@ -66,6 +65,10 @@ struct LinePlot: View {
             }.frame(height: 150)
             HStack { Text(label(start)); Spacer(); Text(label(end)) }.font(.system(size: 10)).foregroundColor(Ink.muted).padding(.leading, 42)
         }.accessibilityElement(children: .ignore).accessibilityLabel("\(unit) chart with \(points.count) logged points. \(points.last.map { "Latest value \(number($0.value)) \(unit)" } ?? "No entries")")
+    }
+    var selectionLabel: String {
+        guard let point = selected ?? (timeLabels ? nil : points.last) else { return "Touch the chart to inspect" }
+        return "\(point.date.formatted(date: timeLabels ? .omitted : .abbreviated, time: timeLabels ? .shortened : .omitted)) · \(String(format: timeLabels ? "%.0f" : "%.1f", point.value)) \(unit)"
     }
     func number(_ value: Double) -> String { String(format: zeroBased ? "%.0f" : "%.1f", value) }
     func label(_ date: Date) -> String { date.formatted(date: timeLabels ? .omitted : .abbreviated, time: timeLabels ? .shortened : .omitted) }
