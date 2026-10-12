@@ -3,20 +3,30 @@ import SwiftUI
 final class Store: ObservableObject {
     @Published var data = Snapshot()
     @Published var error: String?
+    private var unreadable = false
     private let file: URL
     init() {
         file = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("reach.json")
         if FileManager.default.fileExists(atPath: file.path) {
             do { data = try JSONDecoder().decode(Snapshot.self, from: Data(contentsOf: file)) }
-            catch { self.error = "Your saved journal could not be read. The original file has been kept. Please export a backup before making changes." }
+            catch { unreadable = true; self.error = "Your saved journal could not be read. The original file has been kept and writing is disabled. Restore a known REACH backup from Your profile & backup to recover." }
         }
     }
     func save() {
-        guard error == nil else { return }
+        guard !unreadable else { error = "Writing is disabled to preserve your unreadable journal. Restore a known backup in settings."; return }
         do {
             try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
             try JSONEncoder().encode(data).write(to: file, options: [.atomic, .completeFileProtection])
         } catch { self.error = "Your changes could not be saved. Please keep the app open and export a backup." }
+    }
+    func restore(_ snapshot: Snapshot) {
+        do {
+            if FileManager.default.fileExists(atPath: file.path) {
+                let backup = file.deletingLastPathComponent().appendingPathComponent("reach-before-restore-\(UUID().uuidString).json")
+                try FileManager.default.copyItem(at: file, to: backup)
+            }
+            data = snapshot; unreadable = false; error = nil; save()
+        } catch { self.error = "Could not preserve the current journal. Restore was cancelled." }
     }
     var todayMeals: [Meal] { data.meals.filter { Calendar.current.isDateInToday($0.date) } }
     var calories: Double { todayMeals.reduce(0) { $0 + $1.calories } }

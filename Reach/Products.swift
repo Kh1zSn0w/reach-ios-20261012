@@ -93,6 +93,7 @@ final class ScanController: UIViewController, AVCaptureMetadataOutputObjectsDele
     var found: ((String) -> Void)?
     var preview: AVCaptureVideoPreviewLayer?
     var delivered = false
+    private var cancelled = false
     let label = UILabel()
     override func viewDidLoad() {
         super.viewDidLoad(); view.backgroundColor = .black
@@ -105,6 +106,7 @@ final class ScanController: UIViewController, AVCaptureMetadataOutputObjectsDele
         }
     }
     func configure() {
+        guard !cancelled else { return }
         guard let device = AVCaptureDevice.default(for: .video), let input = try? AVCaptureDeviceInput(device: device), session.canAddInput(input) else {
             DispatchQueue.main.async { self.label.text = "No camera available. Enter the barcode digits instead." }; return
         }
@@ -121,7 +123,7 @@ final class ScanController: UIViewController, AVCaptureMetadataOutputObjectsDele
         session.startRunning()
     }
     override func viewDidLayoutSubviews() { super.viewDidLayoutSubviews(); preview?.frame = view.bounds; label.frame = CGRect(x: 24, y: 45, width: view.bounds.width - 48, height: 100) }
-    func stop() { queue.async { [weak self] in self?.session.stopRunning() } }
+    func stop() { queue.async { [weak self] in self?.cancelled = true; self?.session.stopRunning() } }
     func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput objects: [AVMetadataObject], from connection: AVCaptureConnection) {
         guard !delivered, let code = (objects.first as? AVMetadataMachineReadableCodeObject)?.stringValue else { return }
         delivered = true; stop(); UINotificationFeedbackGenerator().notificationOccurred(.success); found?(code)

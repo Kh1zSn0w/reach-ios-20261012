@@ -13,6 +13,9 @@ if command=='check':
 elif command=='public':
     r=api('/repos/'+REPO,{'private':False},'PATCH')
     print(json.dumps({'repo':r['full_name'],'private':r['private']}))
+elif command=='repo':
+    r=api('/repos/'+REPO)
+    print(json.dumps({k:r.get(k) for k in ['full_name','private','disabled','archived','visibility']}))
 elif command=='create':
     try: r=api('/repos/'+REPO)
     except urllib.error.HTTPError as e:

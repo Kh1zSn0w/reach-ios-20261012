@@ -37,7 +37,7 @@ struct RootView: View {
             .sheet(isPresented: $onboarding) { ProfileView() }
             .fullScreenCover(isPresented: $tempted) { TemptedView() }
             .onAppear { onboarding = !store.data.profile.configured }
-            .alert("Journal needs attention", isPresented: Binding(get: { store.error != nil }, set: { _ in })) {
+            .alert("Journal needs attention", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) {
                 Button("Keep original data", role: .cancel) {}
             } message: { Text(store.error ?? "") }
     }
@@ -136,7 +136,7 @@ struct ProfileView: View {
                     Text("If any applies, or you’re under 18, Cut Mode will ask you to work with a qualified clinician instead of generating a deficit.").font(.caption).foregroundColor(Ink.muted)
                 }
                 if !message.isEmpty { Text(message).foregroundColor(.orange) }
-                Section { Button("Save my profile") { save() }.fontWeight(.bold) }
+                Section { Button("Save my profile") { save() }.font(.system(size: 16, weight: .bold)) }
             }.navigationTitle("Your starting point").navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } }
         }.onAppear { profile = store.data.profile }.preferredColorScheme(.dark)
@@ -204,14 +204,18 @@ struct SettingsView: View {
                     let snapshot = try JSONDecoder().decode(Snapshot.self, from: bytes)
                     let p = snapshot.profile
                     guard (120...230).contains(p.height), (30...350).contains(p.weight), (13...100).contains(p.age),
+                          (30...350).contains(p.goal), ["Male", "Female"].contains(p.sex),
                           (0...0.25).contains(p.intensity), [1.2,1.375,1.55,1.725].contains(p.activity),
-                          snapshot.meals.allSatisfy({ $0.grams.isFinite && $0.grams > 0 && $0.grams <= 5000 && $0.kcalPer100.isFinite && (0...1000).contains($0.kcalPer100) }) else { message = "This backup contains invalid values."; return }
+                          snapshot.meals.allSatisfy({ $0.grams.isFinite && $0.grams > 0 && $0.grams <= 5000 && $0.kcalPer100.isFinite && (0...1000).contains($0.kcalPer100) && $0.proteinPer100.isFinite && (0...100).contains($0.proteinPer100) }),
+                          snapshot.weights.allSatisfy({ $0.kg.isFinite && (30...350).contains($0.kg) }),
+                          snapshot.focus.allSatisfy({ (1...120).contains($0.minutes) }),
+                          snapshot.checkIns.allSatisfy({ (0...10).contains($0.urge) }) else { message = "This backup contains invalid values."; return }
                     importSnapshot = snapshot; confirmImport = true
                 } catch { message = "That file isn’t a readable REACH backup." }
             }
             .alert("Replace this device’s journal?", isPresented: $confirmImport) {
                 Button("Cancel", role: .cancel) {}
-                Button("Restore", role: .destructive) { if let snapshot = importSnapshot { store.data = snapshot; store.save() } }
+                Button("Restore", role: .destructive) { if let snapshot = importSnapshot { store.restore(snapshot) } }
             } message: { Text("Export your current journal first if you want to keep it. Restoring replaces its entries.") }
     }
 }
