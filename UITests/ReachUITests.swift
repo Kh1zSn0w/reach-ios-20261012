@@ -45,7 +45,8 @@ final class ReachUITests: XCTestCase {
         app.buttons["Caffeine"].tap(); app.buttons["Log caffeine"].tap()
         let amount = app.textFields["Caffeine amount"]; XCTAssertTrue(amount.waitForExistence(timeout: 5))
         let verified = app.switches["This caffeine/serving value matches my tub"]
-        if verified.exists && verified.value as? String == "0" { verified.tap() }
+        // SwiftUI exposes the entire labeled row as a switch; hit the native control at its trailing edge.
+        if verified.exists && verified.value as? String == "0" { verified.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.5)).tap() }
         XCTAssertEqual(verified.value as? String, "1")
         let save = app.buttons["Save caffeine dose"]
         if !save.isHittable { app.swipeUp() }
