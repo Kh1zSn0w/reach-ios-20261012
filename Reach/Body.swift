@@ -11,11 +11,11 @@ struct BodyView: View {
     var body: some View {
         Page(eyebrow: "01 / Body", title: "Built. Not wished.", subtitle: "Measure honestly. Adjust patiently.") {
             HStack { InkIcon(name: "skull", size: 92); Spacer(); VStack(alignment: .trailing) { Text("DAILY FUEL").font(.system(size: 10, design: .monospaced)).tracking(2).foregroundColor(Ink.muted); Text("\(Int(store.calories))").font(.system(size: 52, weight: .medium, design: .rounded)); Text(store.data.profile.configured ? "of ~\(Int(store.data.profile.target)) kcal" : "Set your profile to see a target").font(.caption).foregroundColor(Ink.muted) } }
-            ProgressView(value: min(store.calories / max(store.data.profile.target, 1), 1)).tint(Ink.blue)
+            if store.data.profile.configured { ProgressView(value: min(store.calories / max(store.data.profile.target, 1), 1)).tint(Ink.blue) }
             HStack {
                 Metric(label: "Protein", value: "\(Int(store.protein))", unit: "g logged")
                 Metric(label: "TDEE", value: store.data.profile.configured ? "\(Int(store.data.profile.tdee))" : "—", unit: "kcal · equation estimate")
-                Metric(label: "Weight", value: String(format: "%.1f", store.data.profile.weight), unit: "kg · last entry")
+                Metric(label: "Weight", value: store.data.profile.configured || !store.data.weights.isEmpty ? String(format: "%.1f", store.data.profile.weight) : "—", unit: "kg · last entry")
             }.padding(.vertical, 14)
             HStack { Action(title: "Log food", symbol: "plus") { food = true }; Action(title: "Weigh in", symbol: "plus") { weigh = true } }
             Button("Review daily intake & mark complete") { history = true }.font(.system(size: 13)).foregroundColor(Ink.blue)
