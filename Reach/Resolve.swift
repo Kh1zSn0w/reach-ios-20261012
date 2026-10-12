@@ -11,8 +11,8 @@ struct ResolveView: View {
     var library: [Quote] { allQuotes.filter { (category == "All" || $0.category == category) && (!favorites || store.data.favoriteQuotes.contains($0.id)) } }
     var current: Quote? { library.isEmpty ? nil : library[abs(cursor % library.count)] }
     var body: some View {
-        Page(eyebrow: "04 / Resolve", title: "Words with\nweight.", subtitle: "\(allQuotes.count) reminders. Read one. Put it to work.") {
-            HStack { InkIcon(name: "sword", size: 88); Spacer(); Button { favorites.toggle(); cursor = 0 } label: { Label(favorites ? "Favorites" : "All quotes", systemImage: favorites ? "heart.fill" : "heart").font(.system(size: 12)).foregroundColor(Ink.blue) } }
+        Page(eyebrow: "", title: "Quotes", subtitle: "\(allQuotes.count) entries · attributed and original") {
+            HStack { Spacer(); Button { favorites.toggle(); cursor = 0 } label: { Label(favorites ? "Favorites" : "All quotes", systemImage: favorites ? "heart.fill" : "heart").font(.system(size: 13)).foregroundColor(Ink.blue) } }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) { ForEach(categories, id: \.self) { item in
                     Button { category = item; cursor = 0 } label: { Text(item).font(.system(size: 12, weight: .medium)).padding(.horizontal, 13).padding(.vertical, 9).background(category == item ? Ink.blue.opacity(0.3) : .white.opacity(0.04), in: Capsule()).foregroundColor(category == item ? Ink.ivory : Ink.muted) }.buttonStyle(.plain)
@@ -24,8 +24,8 @@ struct ResolveView: View {
                     if !q.arabic.isEmpty {
                         Text(q.arabic).font(.custom("ReemKufi", size: 31, relativeTo: .title)).fontWeight(.bold).lineSpacing(15).multilineTextAlignment(.trailing).frame(maxWidth: .infinity, alignment: .trailing).environment(\.layoutDirection, .rightToLeft)
                     }
-                    Text(q.words.uppercased()).font(.custom("BebasNeue-Regular", size: 43, relativeTo: .largeTitle)).tracking(0.6).lineSpacing(3).fixedSize(horizontal: false, vertical: true)
-                    Text(q.source.uppercased()).font(.system(size: 10, design: .monospaced)).tracking(1.3).foregroundColor(Ink.muted)
+                    Text(q.words).font(.system(size: 25, weight: .semibold)).lineSpacing(5).fixedSize(horizontal: false, vertical: true)
+                    Text(q.source).font(.system(size: 12)).foregroundColor(Ink.muted)
                     if !q.url.isEmpty { Link("Read in context ↗", destination: URL(string: q.url)!).font(.caption) }
                 }.padding(.vertical, 22).id(q.id).transition(.opacity)
                 HStack {
@@ -36,9 +36,7 @@ struct ResolveView: View {
                     Spacer()
                     Button { withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) { cursor += 1 } } label: { Image(systemName: "arrow.right").frame(width: 50, height: 50).glass() }.accessibilityLabel("Next quote")
                 }
-                Text("Make it concrete: choose one action this line asks of you today.").font(.system(size: 14)).foregroundColor(Ink.muted).padding(.top, 20)
             } else { Text("Favorite a few lines to build your own collection.").foregroundColor(Ink.muted) }
-            Text("REACH originals are labeled. Translations convey meanings. Historical quotes link to their context; power maxims are prompts for reflection, not instructions to harm or manipulate people.").font(.system(size: 12)).foregroundColor(Ink.muted)
         }.sheet(isPresented: $sharing) { if let q = current { ShareSheet(items: [(q.arabic.isEmpty ? "" : q.arabic + "\n\n") + q.words + "\n\n" + q.source]) } }
     }
 }

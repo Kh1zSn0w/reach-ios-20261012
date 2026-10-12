@@ -6,24 +6,22 @@ struct RecoveryView: View {
     @Binding var tempted: Bool
     @State private var journal = false
     var body: some View {
-        Page(eyebrow: "02 / Relapse", title: "Hold the line.", subtitle: "An urge is a feeling. It isn’t an instruction.") {
-            HStack { InkIcon(name: "shield", size: 108); Spacer(); VStack(alignment: .trailing, spacing: 8) { Text("\(store.data.checkIns.filter { !$0.lapse }.count)").font(.system(size: 48, weight: .medium, design: .rounded)); Text("moments interrupted").font(.caption).foregroundColor(Ink.muted) } }
+        Page(eyebrow: "", title: "Relapse support", subtitle: "Urge tools and private check-ins") {
+            HStack { Metric(label: "Urges interrupted", value: "\(store.data.checkIns.filter { !$0.lapse }.count)", unit: "self-reported"); Metric(label: "Check-ins", value: "\(store.data.checkIns.count)", unit: "journal entries") }
             Action(title: "I’m tempted", symbol: "hand.raised.fill") { tempted = true }
             Text("Porn, compulsive masturbation, doomscrolling, or another habit you want to change. Choose your boundary without turning a struggle into shame.").font(.system(size: 14)).foregroundColor(Ink.muted)
             Card {
-                Text("BREAK THE CHAIN").font(.system(size: 10, design: .monospaced)).tracking(2).foregroundColor(Ink.blue)
-                Text("Make the next bad decision harder.").font(.system(size: 23, weight: .medium, design: .serif))
+                SectionHeading(title: "Managing triggers")
                 tip("01", "Change the room", "Get out of bed, open the door, and move somewhere less private. Put the phone out of reach.")
                 tip("02", "Name the real need", "Bored, lonely, stressed, tired? Choose a response to that need: sleep, a walk, a real conversation or a short task.")
                 tip("03", "Remove the easy route", "Use Screen Time adult-site restrictions, unfollow trigger accounts, and keep your phone outside the bathroom and bedroom.")
             }
             Action(title: "Log a check-in or setback", symbol: "square.and.pencil") { journal = true }
             Card {
-                Text("AFTER A SETBACK").font(.system(size: 10, design: .monospaced)).tracking(2).foregroundColor(Ink.blue)
-                Text("No punishment. No binge. Next choice.").font(.system(size: 23, weight: .medium, design: .serif))
+                SectionHeading(title: "After a setback")
                 Text("Close the trigger, eat and sleep normally, write what happened, and change one part of the setup. A lapse does not erase the choices you made before it.").font(.system(size: 14)).foregroundColor(Ink.muted)
             }
-            Text("YOUR RECENT CHECK-INS").font(.system(size: 10, design: .monospaced)).tracking(2).foregroundColor(Ink.muted)
+            SectionHeading(title: "Recent check-ins")
             if store.data.checkIns.isEmpty { Text("Your journal starts with the next honest check-in.").font(.system(size: 14)).foregroundColor(Ink.muted) }
             ForEach(Array(store.data.checkIns.suffix(10).reversed())) { entry in
                 VStack(alignment: .leading, spacing: 7) {
@@ -82,16 +80,15 @@ struct TemptedView: View {
             CanvasBackground()
             ScrollView {
                 VStack(alignment: .leading, spacing: 26) {
-                    HStack { Text("INTERRUPT / \(step + 1) OF 4").font(.system(size: 10, weight: .bold, design: .monospaced)).tracking(2).foregroundColor(Ink.blue); Spacer(); Button("Close") { dismiss() }.font(.caption) }
-                    InkIcon(name: "shield", size: 100)
+                    HStack { Text("Step \(step + 1) of 4").font(.system(size: 13, weight: .medium)).foregroundColor(Ink.muted); Spacer(); Button("Close") { dismiss() }.font(.caption) }
                     if step == 0 {
-                        Text("Stop here.\nStay with me.").font(.system(size: 43, weight: .bold, design: .serif))
+                        Text("Pause the urge").font(.system(size: 28, weight: .semibold))
                         Text("Close the triggering tab or app. Stand up. Put your phone down for a moment. You don’t have to solve your whole life right now.").foregroundColor(Ink.muted)
                         Stepper("How strong is the urge? \(urge)/10", value: $urge, in: 0...10)
                         TextField("What set it off? (optional)", text: $trigger).padding(16).background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
                         Action(title: "I’ve stepped away") { advance() }
                     } else if step == 1 {
-                        Text("Ride the wave.").font(.system(size: 37, weight: .bold, design: .serif))
+                        Text("Breathe slowly").font(.system(size: 28, weight: .semibold))
                         Text("Breathe gently. In for 4, out for 6. Notice where the urge sits in your body. Let the feeling be there without feeding it. If paced breathing feels uncomfortable, breathe normally.").foregroundColor(Ink.muted)
                         TimelineView(.periodic(from: .now, by: 1)) { timeline in
                             let elapsed = max(0, Int(timeline.date.timeIntervalSince(start)))
@@ -99,13 +96,13 @@ struct TemptedView: View {
                             ZStack {
                                 Circle().stroke(Ink.blue.opacity(0.2), lineWidth: 1).frame(width: 210, height: 210)
                                 Circle().fill(Ink.blue.opacity(0.10)).frame(width: inhale ? 175 : 135, height: inhale ? 175 : 135).animation(reduceMotion ? nil : .easeInOut(duration: 3), value: inhale)
-                                VStack(spacing: 8) { Text(inhale ? "Breathe in" : "Breathe out").font(.system(size: 24, weight: .medium, design: .serif)); Text("\(max(0, 90 - elapsed))s").font(.system(size: 13, design: .monospaced)).foregroundColor(Ink.muted) }
+                                VStack(spacing: 8) { Text(inhale ? "Breathe in" : "Breathe out").font(.system(size: 24, weight: .medium)); Text("\(max(0, 90 - elapsed))s").font(.system(size: 13, design: .monospaced)).foregroundColor(Ink.muted) }
                             }.frame(maxWidth: .infinity).padding(.vertical, 15)
                         }
                         Text("No need to force the urge to disappear. Practice not acting on it.").font(.system(size: 14)).foregroundColor(Ink.muted)
                         Action(title: "Next: change my environment") { advance() }
                     } else if step == 2 {
-                        Text("Move your body.\nMove the moment.").font(.system(size: 36, weight: .bold, design: .serif))
+                        Text("Change your environment").font(.system(size: 28, weight: .semibold))
                         Text("Leave the private space. Drink water. Find five things you can see, four you can feel, three you can hear, two you can smell, and one you can taste.").foregroundColor(Ink.muted)
                         Text("Choose what you’ll do instead:").fontWeight(.semibold)
                         ForEach(choices, id: \.self) { item in
@@ -113,8 +110,8 @@ struct TemptedView: View {
                         }
                         Action(title: "Commit to ten minutes") { advance() }
                     } else {
-                        Text("The next ten\nminutes are yours.").font(.system(size: 37, weight: .bold, design: .serif))
-                        Text(choice).font(.system(size: 22, weight: .medium, design: .serif)).foregroundColor(Ink.blue)
+                        Text("Follow your chosen action").font(.system(size: 28, weight: .semibold))
+                        Text(choice).font(.system(size: 20, weight: .medium)).foregroundColor(Ink.blue)
                         TimelineView(.periodic(from: .now, by: 1)) { timeline in
                             let remaining = max(0, 600 - Int(timeline.date.timeIntervalSince(start)))
                             Text(String(format: "%02d:%02d", remaining / 60, remaining % 60)).font(.system(size: 58, weight: .light, design: .monospaced)).monospacedDigit()
@@ -127,11 +124,10 @@ struct TemptedView: View {
                             }
                             Button("I had a setback. Help me reset.") { showJournal = true }.font(.system(size: 14)).foregroundColor(Ink.muted)
                         } else {
-                            Text("Logged. Protect the next choice.").font(.system(size: 22, weight: .medium, design: .serif))
+                            Text("Check-in saved").font(.system(size: 20, weight: .semibold))
                             Action(title: "Back to my day") { dismiss() }
                         }
                     }
-                    Text("No shame. No punishment. One deliberate choice.").font(.system(size: 11, design: .monospaced)).foregroundColor(Ink.muted)
                 }.padding(28).padding(.top, 15)
             }
         }.foregroundColor(Ink.ivory).sheet(isPresented: $showJournal) { CheckInView() }

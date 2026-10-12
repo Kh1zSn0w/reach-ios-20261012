@@ -5,11 +5,14 @@ final class ReachUITests: XCTestCase {
         let attachment = XCTAttachment(screenshot: app.screenshot()); attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
     }
     func testScreensAndTemptationFlow() {
-        let app = XCUIApplication(); app.launch()
+        let app = XCUIApplication(); app.launchArguments = ["--ui-fixture"]; app.launch()
         if app.buttons["Close"].waitForExistence(timeout: 8) { app.buttons["Close"].tap() }
         XCTAssertTrue(app.buttons["Today"].waitForExistence(timeout: 8)); capture("01-Today", app: app)
         app.buttons["Body"].tap(); XCTAssertTrue(app.buttons["Log food"].waitForExistence(timeout: 5)); capture("02-Body", app: app)
-        app.buttons["Open Cut Mode questionnaire"].tap(); XCTAssertTrue(app.staticTexts["CUT\nWITH\nCONTROL."].waitForExistence(timeout: 5)); capture("03-Cut", app: app); app.buttons["Done"].tap()
+        for _ in 0..<4 { if app.buttons["Open Cut Mode questionnaire"].isHittable { break }; app.swipeUp() }
+        app.buttons["Open Cut Mode questionnaire"].tap(); XCTAssertTrue(app.staticTexts["Cut plan"].waitForExistence(timeout: 5)); capture("03-Cut", app: app); app.buttons["Done"].tap()
+        app.buttons["Home + gym activity"].tap(); XCTAssertTrue(app.navigationBars["Activity"].waitForExistence(timeout: 5)); capture("13-Activity", app: app); app.buttons["Done"].tap()
+        app.buttons["Caffeine"].tap(); XCTAssertTrue(app.buttons["Log caffeine"].waitForExistence(timeout: 5)); capture("11-Caffeine", app: app)
         app.buttons["Relapse"].tap(); XCTAssertTrue(app.buttons["I’m tempted"].waitForExistence(timeout: 5)); capture("04-Recovery", app: app)
         app.buttons["I’m tempted"].tap(); XCTAssertTrue(app.buttons["I’ve stepped away"].waitForExistence(timeout: 5)); capture("05-Interrupt", app: app)
         app.buttons["I’ve stepped away"].tap(); XCTAssertTrue(app.buttons["Next: change my environment"].waitForExistence(timeout: 5)); capture("06-Breathe", app: app)
@@ -27,10 +30,27 @@ final class ReachUITests: XCTestCase {
         let grams = app.textFields["Portion weight (g)"]; grams.tap(); grams.typeText("150")
         let kcal = app.textFields["Calories per 100 g"]; kcal.tap(); kcal.typeText("200")
         app.swipeUp(); app.buttons["Add to food log"].tap()
-        app.swipeUp(); XCTAssertTrue(app.staticTexts["Test yogurt"].waitForExistence(timeout: 5))
+        for _ in 0..<7 { if app.staticTexts["Test yogurt"].exists { break }; app.swipeUp() }
+        XCTAssertTrue(app.staticTexts["Test yogurt"].waitForExistence(timeout: 5))
         app.terminate(); app.launch()
         if app.buttons["Close"].waitForExistence(timeout: 2) { app.buttons["Close"].tap() }
-        app.buttons["Body"].tap(); app.swipeUp(); XCTAssertTrue(app.staticTexts["Test yogurt"].waitForExistence(timeout: 5))
+        app.buttons["Body"].tap()
+        for _ in 0..<7 { if app.staticTexts["Test yogurt"].exists { break }; app.swipeUp() }
+        XCTAssertTrue(app.staticTexts["Test yogurt"].waitForExistence(timeout: 5))
         capture("10-Persisted-food", app: app)
+    }
+    func testCaffeineLogPersists() {
+        let app = XCUIApplication(); app.launch()
+        if app.buttons["Close"].waitForExistence(timeout: 3) { app.buttons["Close"].tap() }
+        app.buttons["Caffeine"].tap(); app.buttons["Log caffeine"].tap()
+        let amount = app.textFields["Caffeine amount"]; XCTAssertTrue(amount.waitForExistence(timeout: 5))
+        let verified = app.switches["This caffeine/serving value matches my tub"]
+        if verified.exists && verified.value as? String == "0" { verified.tap() }
+        app.swipeUp(); app.buttons["Save caffeine dose"].tap()
+        XCTAssertTrue(app.buttons["Log caffeine"].waitForExistence(timeout: 5))
+        app.terminate(); app.launch(); app.buttons["Caffeine"].tap()
+        for _ in 0..<5 { if app.staticTexts["Dose history"].isHittable { break }; app.swipeUp() }
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "caffeineDoseRow").firstMatch.waitForExistence(timeout: 5))
+        capture("12-Persisted-caffeine", app: app)
     }
 }

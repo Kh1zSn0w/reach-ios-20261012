@@ -21,19 +21,21 @@ struct RootView: View {
             Group {
                 switch tab {
                 case 1: BodyView()
-                case 2: RecoveryView(tempted: $tempted)
-                case 3: FocusView()
-                case 4: ResolveView()
+                case 2: CaffeineView()
+                case 3: RecoveryView(tempted: $tempted)
+                case 4: FocusView()
+                case 5: ResolveView()
                 default: TodayView(tab: $tab, tempted: $tempted)
                 }
-            }.frame(maxWidth: .infinity, maxHeight: .infinity)
+            }.frame(maxWidth: .infinity, maxHeight: .infinity).clipped()
             HStack(spacing: 0) {
-                tabButton(0, "Today", "hand", "hand.raised")
-                tabButton(1, "Body", "skull", "figure.strengthtraining.traditional")
-                tabButton(2, "Relapse", "shield", "shield")
-                tabButton(3, "Rewire", "eye", "eye")
-                tabButton(4, "Resolve", "sword", "bolt")
-            }.padding(.vertical, 10).padding(.horizontal, 5).glass().padding(.horizontal, 16).padding(.bottom, 6)
+                tabButton(0, "Today", "square.grid.2x2")
+                tabButton(1, "Body", "figure.strengthtraining.traditional")
+                tabButton(2, "Caffeine", "cup.and.saucer")
+                tabButton(3, "Relapse", "shield")
+                tabButton(4, "Rewire", "timer")
+                tabButton(5, "Resolve", "text.quote")
+            }.padding(.vertical, 9).padding(.horizontal, 2).glass().padding(.horizontal, 10).padding(.bottom, 5)
         }.background(CanvasBackground()).foregroundColor(Ink.ivory)
             .sheet(isPresented: $onboarding) { ProfileView() }
             .fullScreenCover(isPresented: $tempted) { TemptedView() }
@@ -42,16 +44,14 @@ struct RootView: View {
                 Button("Keep original data", role: .cancel) {}
             } message: { Text(store.error ?? "") }
     }
-    func tabButton(_ index: Int, _ title: String, _ image: String, _ fallback: String) -> some View {
+    func tabButton(_ index: Int, _ title: String, _ symbol: String) -> some View {
         Button {
-            UISelectionFeedbackGenerator().selectionChanged()
-            tab = index
+            UISelectionFeedbackGenerator().selectionChanged(); tab = index
         } label: {
-            VStack(spacing: 2) {
-                InkIcon(name: image, size: 32).opacity(tab == index ? 1 : 0.55)
-                Text(title).font(.system(size: 9, weight: tab == index ? .bold : .regular)).foregroundColor(tab == index ? Ink.ivory : Ink.muted)
-                Capsule().fill(tab == index ? Ink.blue : .clear).frame(width: 12, height: 2)
-            }.frame(maxWidth: .infinity)
+            VStack(spacing: 5) {
+                Image(systemName: symbol).font(.system(size: 19, weight: tab == index ? .semibold : .regular))
+                Text(title).font(.system(size: 9, weight: tab == index ? .semibold : .regular))
+            }.foregroundColor(tab == index ? Ink.blue : Ink.muted).frame(maxWidth: .infinity).frame(minHeight: 44)
         }.buttonStyle(.plain).accessibilityLabel(title).accessibilityAddTraits(tab == index ? .isSelected : [])
     }
 }
@@ -61,42 +61,55 @@ struct TodayView: View {
     @Binding var tab: Int
     @Binding var tempted: Bool
     @State private var settings = false
+    @State private var food = false
+    @State private var weigh = false
+    @State private var activity = false
     var body: some View {
-        Page(eyebrow: Date().formatted(date: .abbreviated, time: .omitted), title: "Take yourself\nback.", subtitle: "One honest day. Then another.") {
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("REACH").font(.system(size: 13, weight: .heavy, design: .monospaced)).tracking(7)
-                    Text(store.data.profile.name.isEmpty ? "Your work starts here." : "Your work starts here, \(store.data.profile.name).").font(.system(size: 18, weight: .medium, design: .serif))
-                    Button("Your profile & backup") { settings = true }.font(.system(size: 12)).foregroundColor(Ink.blue)
-                }
-                Spacer()
-                InkIcon(name: "hand", size: 115)
-            }.padding(.bottom, 12)
+        Page(eyebrow: "", title: "Today", subtitle: Date().formatted(date: .complete, time: .omitted)) {
             HStack {
-                Metric(label: "Fuel", value: "\(Int(store.calories))", unit: "kcal logged today")
-                Metric(label: "Focus", value: "\(store.todayFocus)", unit: "minutes reclaimed")
-                Metric(label: "Weight", value: store.weekWeight.map { String(format: "%.1f", $0) } ?? "—", unit: "kg · 7-day mean")
-            }.padding(.vertical, 20).overlay(alignment: .top) { Rectangle().fill(Ink.muted.opacity(0.2)).frame(height: 1) }.overlay(alignment: .bottom) { Rectangle().fill(Ink.muted.opacity(0.2)).frame(height: 1) }
-            Card {
-                Text("BEFORE THE SPIRAL").font(.system(size: 10, weight: .bold, design: .monospaced)).tracking(3).foregroundColor(Ink.blue)
-                Text("You still have a choice.").font(.system(size: 25, weight: .medium, design: .serif))
-                Text("Pause the urge. Put distance between you and the trigger. Let’s get through the next few minutes.").foregroundColor(Ink.muted).font(.system(size: 14))
-                Action(title: "I’m tempted", symbol: "hand.raised.fill") { tempted = true }
+                Text(store.data.profile.name.isEmpty ? "Daily overview" : store.data.profile.name).font(.system(size: 15, weight: .medium))
+                Spacer()
+                Button { settings = true } label: { Image(systemName: "gearshape").font(.system(size: 19)).frame(width: 44, height: 36) }.accessibilityLabel("Your profile & backup")
             }
-            Text("TODAY’S NON-NEGOTIABLES").font(.system(size: 10, weight: .bold, design: .monospaced)).tracking(2).foregroundColor(Ink.muted)
-            ForEach(["Move for 20 minutes", "One distraction-free focus block", "Read 5 pages", "Phone outside the bedroom"], id: \.self) { habit in
+            HStack(spacing: 14) {
+                Metric(label: "Calories", value: "\(Int(store.calories))", unit: store.data.profile.energyAvailable ? "/ ~\(Int(store.data.profile.target)) kcal" : "kcal logged")
+                Metric(label: "Protein", value: "\(Int(store.protein))", unit: "g logged")
+                Metric(label: "Weight", value: store.weekWeight.map { String(format: "%.1f", $0) } ?? "—", unit: "kg · 7-day mean")
+            }.padding(.vertical, 12)
+            HStack(spacing: 10) {
+                Action(title: "Log food", symbol: "plus") { food = true }
+                Action(title: "Weigh in", symbol: "plus") { weigh = true }
+            }
+            Button { tempted = true } label: {
+                HStack { Image(systemName: "hand.raised"); Text("I’m tempted").fontWeight(.semibold); Spacer(); Text("Open support").font(.system(size: 12)).foregroundColor(Ink.muted); Image(systemName: "chevron.right").font(.caption) }
+                    .padding(15).background(Ink.surface, in: RoundedRectangle(cornerRadius: 10))
+            }.buttonStyle(.plain)
+            WeightTrend(weights: store.data.weights)
+            Card {
+                SectionHeading(title: "Caffeine")
+                TimelineView(.periodic(from: .now, by: 60)) { context in
+                    HStack {
+                        Metric(label: "Estimated remaining", value: "~\(Int(Caffeine.remaining(store.doses, at: context.date, halfLife: store.caffeineConfig.halfLifeHours)))", unit: "mg · elimination model")
+                        Metric(label: "Last 24 hours", value: "\(Int(Caffeine.intake(store.doses, at: context.date)))", unit: "mg logged")
+                    }
+                }
+                NavigationRow(title: "ABE & caffeine log", detail: "Dose history, decay curve and bedtime estimate", symbol: "cup.and.saucer") { tab = 2 }
+            }
+            DailyIntakeChart(meals: store.data.meals, complete: store.data.completedIntakeDays ?? [], target: store.data.profile.energyAvailable ? store.data.profile.target : nil)
+            VStack(spacing: 0) {
+                NavigationRow(title: "Home + gym", detail: store.activityDescription, symbol: "figure.strengthtraining.traditional") { activity = true }
+                Divider().overlay(Ink.line)
+                NavigationRow(title: "Focus", detail: "\(store.todayFocus) minutes logged today", symbol: "timer") { tab = 4 }
+            }
+            SectionHeading(title: "Daily checklist")
+            ForEach(["Gym or planned recovery", "One distraction-free focus block", "Read 5 pages", "Phone outside the bedroom"], id: \.self) { habit in
                 Button { store.toggle(habit) } label: {
-                    HStack(spacing: 13) {
-                        Image(systemName: store.done(habit) ? "checkmark.circle.fill" : "circle").foregroundColor(store.done(habit) ? Ink.blue : Ink.muted)
-                        Text(habit).font(.system(size: 15)); Spacer()
-                    }.padding(.vertical, 10)
+                    HStack(spacing: 12) { Image(systemName: store.done(habit) ? "checkmark.circle.fill" : "circle").foregroundColor(store.done(habit) ? Ink.blue : Ink.muted); Text(habit).font(.system(size: 14)); Spacer() }.padding(.vertical, 8)
                 }.buttonStyle(.plain)
             }
-            Button { tab = 4 } label: {
-                HStack { Text("Your next ten minutes are still yours. Take them back.").font(.system(size: 24, weight: .medium, design: .serif)); Spacer(); InkIcon(name: "sword", size: 55) }
-                    .padding(.vertical, 18)
-            }.buttonStyle(.plain)
         }.sheet(isPresented: $settings) { SettingsView() }
+            .sheet(isPresented: $food) { FoodView() }.sheet(isPresented: $weigh) { WeightView() }
+            .sheet(isPresented: $activity) { ActivityView() }
     }
 }
 
@@ -109,7 +122,7 @@ struct ProfileView: View {
         NavigationView {
             Form {
                 Section {
-                    Text("Build a plan around your real life.").font(.system(size: 26, weight: .bold, design: .serif))
+                    Text("Profile").font(.system(size: 22, weight: .semibold))
                     Text("These values produce a starting estimate, not a measurement of your metabolism. All entries stay on this device.").foregroundColor(Ink.muted)
                     TextField("Your name (optional)", text: $profile.name)
                 }
@@ -121,14 +134,9 @@ struct ProfileView: View {
                     Picker("Equation coefficient", selection: $profile.sex) { Text("Male").tag("Male"); Text("Female").tag("Female") }
                     Text("Mifflin–St Jeor uses sex-based coefficients. Hormone therapy and individual differences can reduce its accuracy.").font(.caption).foregroundColor(Ink.muted)
                 }
-                Section("Your usual activity") {
-                    Picker("Activity", selection: $profile.activity) {
-                        Text("Mostly seated").tag(1.2)
-                        Text("Light · 1–3 active days/week").tag(1.375)
-                        Text("Moderate · 3–5 days/week").tag(1.55)
-                        Text("High · 6–7 days/week").tag(1.725)
-                    }
-                    Text("Include your usual exercise here. The app doesn’t add exercise calories again.").font(.caption).foregroundColor(Ink.muted)
+                Section("Activity") {
+                    Text("Home most of the day + gym").font(.system(size: 15, weight: .medium))
+                    Text("Save your profile, then use the dedicated Activity section to enter gym frequency, duration and type. Existing calorie settings stay in place until you confirm the new plan.").font(.caption).foregroundColor(Ink.muted)
                 }
                 Section("Before setting a deficit") {
                     Toggle("Medical condition or relevant medication", isOn: $profile.medicalRisk)
@@ -138,7 +146,7 @@ struct ProfileView: View {
                 }
                 if !message.isEmpty { Text(message).foregroundColor(.orange) }
                 Section { Button("Save my profile") { save() }.font(.system(size: 16, weight: .bold)) }
-            }.navigationTitle("Your starting point").navigationBarTitleDisplayMode(.inline)
+            }.navigationTitle("Profile").navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } }
         }.onAppear { profile = store.data.profile }.preferredColorScheme(.dark)
     }
@@ -151,6 +159,9 @@ struct ProfileView: View {
             message = "Enter a height from 120–230 cm and weights from 30–350 kg."; return
         }
         profile.configured = true
+        if profile.age != store.data.profile.age || profile.height != store.data.profile.height || profile.sex != store.data.profile.sex {
+            profile.maintenanceOverride = nil; profile.maintenanceUpdated = nil
+        }
         store.data.profile = profile
         if store.data.weights.isEmpty { store.data.weights.append(WeighIn(kg: profile.weight)) }
         store.save(); dismiss()
@@ -161,6 +172,7 @@ struct SettingsView: View {
     @EnvironmentObject var store: Store
     @Environment(\.dismiss) var dismiss
     @State private var edit = false
+    @State private var activity = false
     @State private var exportURL: URL?
     @State private var sharing = false
     @State private var importing = false
@@ -170,7 +182,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationView {
             List {
-                Section("Your profile") { Button("Edit measurements & safety screening") { edit = true } }
+                Section("Your profile") { Button("Edit measurements & safety screening") { edit = true }; Button("Home + gym activity") { activity = true } }
                 Section("Private by design") {
                     Text("No account. No analytics. No ads. Your food, body and recovery journal stay on your device, protected by iOS file protection. Device backups may include this data.")
                     Button("Export private backup") {
@@ -192,9 +204,10 @@ struct SettingsView: View {
                     Link("Mifflin–St Jeor · original study", destination: URL(string: "https://pubmed.ncbi.nlm.nih.gov/2305711/")!)
                 }
                 if !message.isEmpty { Text(message) }
-                Section { Text("REACH 1.0 · Made for the work.").font(.caption).foregroundColor(Ink.muted) }
-            }.navigationTitle("Your space").toolbar { Button("Done") { dismiss() } }
+                Section { Text("Version 1.1").font(.caption).foregroundColor(Ink.muted) }
+            }.navigationTitle("Settings").toolbar { Button("Done") { dismiss() } }
         }.sheet(isPresented: $edit) { ProfileView() }
+            .sheet(isPresented: $activity) { ActivityView() }
             .sheet(isPresented: $sharing) { if let url = exportURL { ShareSheet(items: [url]) } }
             .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
                 do {
@@ -210,7 +223,7 @@ struct SettingsView: View {
                           snapshot.meals.allSatisfy({ $0.grams.isFinite && $0.grams > 0 && $0.grams <= 5000 && $0.kcalPer100.isFinite && (0...1000).contains($0.kcalPer100) && $0.proteinPer100.isFinite && (0...100).contains($0.proteinPer100) }),
                           snapshot.weights.allSatisfy({ $0.kg.isFinite && (30...350).contains($0.kg) }),
                           snapshot.focus.allSatisfy({ (1...120).contains($0.minutes) }),
-                          snapshot.checkIns.allSatisfy({ (0...10).contains($0.urge) }) else { message = "This backup contains invalid values."; return }
+                          snapshot.checkIns.allSatisfy({ (0...10).contains($0.urge) }), snapshot.extendedFieldsValid else { message = "This backup contains invalid values."; return }
                     importSnapshot = snapshot; confirmImport = true
                 } catch { message = "That file isn’t a readable REACH backup." }
             }

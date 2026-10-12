@@ -8,72 +8,79 @@ struct BodyView: View {
     @State private var edit = false
     @State private var review = false
     @State private var history = false
+    @State private var activity = false
     var body: some View {
-        Page(eyebrow: "01 / Body", title: "Built. Not wished.", subtitle: "Measure honestly. Adjust patiently.") {
-            HStack { InkIcon(name: "skull", size: 92); Spacer(); VStack(alignment: .trailing) { Text("DAILY FUEL").font(.system(size: 10, design: .monospaced)).tracking(2).foregroundColor(Ink.muted); Text("\(Int(store.calories))").font(.system(size: 52, weight: .medium, design: .rounded)); Text(store.data.profile.configured ? "of ~\(Int(store.data.profile.target)) kcal" : "Set your profile to see a target").font(.caption).foregroundColor(Ink.muted) } }
-            if store.data.profile.configured { ProgressView(value: min(store.calories / max(store.data.profile.target, 1), 1)).tint(Ink.blue) }
-            HStack {
-                Metric(label: "Protein", value: "\(Int(store.protein))", unit: "g logged")
-                Metric(label: "TDEE", value: store.data.profile.configured ? "\(Int(store.data.profile.tdee))" : "—", unit: "kcal · equation estimate")
-                Metric(label: "Weight", value: store.data.profile.configured || !store.data.weights.isEmpty ? String(format: "%.1f", store.data.profile.weight) : "—", unit: "kg · last entry")
-            }.padding(.vertical, 14)
+        Page(eyebrow: "", title: "Body", subtitle: "Nutrition, measurements and activity") {
+            HStack(spacing: 16) {
+                Metric(label: "Calories logged", value: "\(Int(store.calories))", unit: store.data.profile.energyAvailable ? "/ ~\(Int(store.data.profile.target)) kcal" : "kcal today")
+                Metric(label: "Protein", value: "\(Int(store.protein))", unit: "g today")
+                Metric(label: "Last weight", value: store.data.profile.configured || !store.data.weights.isEmpty ? String(format: "%.1f", store.data.profile.weight) : "—", unit: "kg")
+            }.padding(.vertical, 8)
+            if store.data.profile.energyAvailable { ProgressView(value: min(store.calories / max(store.data.profile.target, 1), 1)).tint(Ink.blue) }
             HStack { Action(title: "Log food", symbol: "plus") { food = true }; Action(title: "Weigh in", symbol: "plus") { weigh = true } }
-            Button("Review daily intake & mark complete") { history = true }.font(.system(size: 13)).foregroundColor(Ink.blue)
-            Button { cut = true } label: {
-                HStack(spacing: 18) {
-                    InkIcon(name: "skull", size: 64)
-                    VStack(alignment: .leading, spacing: 6) { Text("CUT MODE").font(.system(size: 22, weight: .heavy, design: .serif)); Text("A serious deficit. A deliberate plan.").font(.system(size: 13)).foregroundColor(Ink.muted) }
-                    Spacer(); Image(systemName: "arrow.up.right")
-                }.padding(.vertical, 22).overlay(alignment: .top) { Rectangle().fill(Ink.muted.opacity(0.25)).frame(height: 1) }.overlay(alignment: .bottom) { Rectangle().fill(Ink.muted.opacity(0.25)).frame(height: 1) }
-            }.buttonStyle(.plain).accessibilityLabel("Open Cut Mode questionnaire")
-            Card {
-                Text("CALIBRATE, DON’T GUESS").font(.system(size: 10, weight: .bold, design: .monospaced)).tracking(2).foregroundColor(Ink.blue)
-                if let observed = store.observedTDEE {
-                    Text("~\(Int(observed)) kcal").font(.system(size: 29, weight: .medium))
-                    Text("Observed estimate from 14 completed days of intake logs and two weekly weight means. Water shifts and incomplete logs can distort this.").font(.system(size: 13)).foregroundColor(Ink.muted)
-                    Button("Review weekly calibration") { review = true }
-                } else {
-                    Text("Your body supplies the feedback.").font(.system(size: 22, weight: .medium, design: .serif))
-                    Text("Log all food for 14 complete days and at least 4 weigh-ins each week. We’ll compare two weekly means to estimate your actual maintenance. Missing food makes this unreliable.").font(.system(size: 13)).foregroundColor(Ink.muted)
-                }
+            Button("Review daily intake & mark complete") { history = true }.font(.system(size: 13))
+            WeightTrend(weights: store.data.weights)
+            DailyIntakeChart(meals: store.data.meals, complete: store.data.completedIntakeDays ?? [], target: store.data.profile.energyAvailable ? store.data.profile.target : nil)
+            VStack(spacing: 0) {
+                NavigationRow(title: "Home + gym activity", detail: store.activityDescription, symbol: "figure.strengthtraining.traditional") { activity = true }
+                Divider().overlay(Ink.line)
+                Button { cut = true } label: {
+                    HStack(spacing: 12) {
+                        InkIcon(name: "skull", size: 34)
+                        VStack(alignment: .leading, spacing: 4) { Text("Cut Mode").font(.system(size: 15, weight: .medium)); Text("Screening, deficit and daily target").font(.system(size: 12)).foregroundColor(Ink.muted) }
+                        Spacer(); Image(systemName: "chevron.right").font(.caption).foregroundColor(Ink.muted)
+                    }.padding(.vertical, 12)
+                }.buttonStyle(.plain).accessibilityLabel("Open Cut Mode questionnaire")
             }
+            energyBreakdown
             if !store.todayMeals.isEmpty {
-                Text("TODAY’S LOG").font(.system(size: 10, design: .monospaced)).tracking(2).foregroundColor(Ink.muted)
+                SectionHeading(title: "Today’s food")
                 ForEach(store.todayMeals) { meal in
-                    HStack { VStack(alignment: .leading, spacing: 5) { Text(meal.name).font(.system(size: 16)); Text("\(Int(meal.grams)) g · \(Int(meal.protein)) g protein").font(.caption).foregroundColor(Ink.muted) }; Spacer(); Text("\(Int(meal.calories))").font(.system(size: 19, design: .rounded)); Button { store.data.meals.removeAll { $0.id == meal.id }; store.data.completedIntakeDays?.removeAll { Calendar.current.isDate($0, inSameDayAs: meal.date) }; store.save() } label: { Image(systemName: "minus.circle").foregroundColor(Ink.muted) }.accessibilityLabel("Delete \(meal.name)") }.padding(.vertical, 8)
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) { Text(meal.name).font(.system(size: 14, weight: .medium)); Text("\(Int(meal.grams)) g · \(Int(meal.protein)) g protein").font(.system(size: 11)).foregroundColor(Ink.muted) }
+                        Spacer(); Text("\(Int(meal.calories)) kcal").font(.system(size: 14)).monospacedDigit()
+                        Button { store.data.meals.removeAll { $0.id == meal.id }; store.data.completedIntakeDays?.removeAll { Calendar.current.isDate($0, inSameDayAs: meal.date) }; store.save() } label: { Image(systemName: "minus.circle").foregroundColor(Ink.muted) }.accessibilityLabel("Delete \(meal.name)")
+                    }.padding(.vertical, 9)
                 }
             }
             if !store.data.weights.isEmpty {
-                WeightChart(weights: Array(store.data.weights.suffix(30)))
+                SectionHeading(title: "Recent weigh-ins")
                 ForEach(Array(store.data.weights.suffix(7).reversed())) { entry in
-                    HStack { Text(entry.date.formatted(date: .abbreviated, time: .omitted)).font(.caption).foregroundColor(Ink.muted); Spacer(); Text(String(format: "%.1f kg", entry.kg)); Button { store.data.weights.removeAll { $0.id == entry.id }; if let last = store.data.weights.last { store.data.profile.weight = last.kg }; store.save() } label: { Image(systemName: "minus.circle").foregroundColor(Ink.muted) }.accessibilityLabel("Delete weigh-in") }
+                    HStack { Text(entry.date.formatted(date: .abbreviated, time: .omitted)).font(.system(size: 12)).foregroundColor(Ink.muted); Spacer(); Text(String(format: "%.1f kg", entry.kg)).font(.system(size: 14)).monospacedDigit(); Button { store.data.weights.removeAll { $0.id == entry.id }; if let last = store.data.weights.last { store.data.profile.weight = last.kg }; store.save() } label: { Image(systemName: "minus.circle").foregroundColor(Ink.muted) }.accessibilityLabel("Delete weigh-in") }
                 }
             }
-            Button("Edit profile & activity") { edit = true }.font(.caption)
-        }.sheet(isPresented: $food) { FoodView() }.sheet(isPresented: $weigh) { WeightView() }.sheet(isPresented: $cut) { CutView() }.sheet(isPresented: $edit) { ProfileView() }.sheet(isPresented: $history) { FoodHistoryView() }
-            .alert("Calibration review", isPresented: $review) {
-                Button("Keep current plan", role: .cancel) {}
-            } message: { Text("Compare your observed estimate to the equation and review logging accuracy first. Update activity in your profile if the difference persists for several weeks. The app does not silently change your calorie target.") }
+            Button("Edit profile & measurements") { edit = true }.font(.system(size: 13))
+        }.sheet(isPresented: $food) { FoodView() }.sheet(isPresented: $weigh) { WeightView() }.sheet(isPresented: $cut) { CutView() }.sheet(isPresented: $edit) { ProfileView() }.sheet(isPresented: $history) { FoodHistoryView() }.sheet(isPresented: $activity) { ActivityView() }
+            .alert("Use the observed maintenance estimate?", isPresented: $review) {
+                Button("Cancel", role: .cancel) {}
+                Button("Use observed estimate") {
+                    guard let observed = store.observedTDEE, store.data.profile.energyAvailable else { return }
+                    store.data.profile.maintenanceOverride = observed; store.data.profile.maintenanceUpdated = Date(); store.save()
+                }
+            } message: { Text("Only use this if all intake was logged and weighing conditions were consistent. It is a simplified energy-balance estimate, affected by water and glycogen. It expires after 28 days; gym calories are not added again.") }
     }
-}
-struct WeightChart: View {
-    var weights: [WeighIn]
-    var body: some View {
+    var energyBreakdown: some View {
         Card {
-            Text("WEIGHT / RECENT TREND").font(.system(size: 10, design: .monospaced)).tracking(2).foregroundColor(Ink.muted)
-            GeometryReader { geo in
-                let low = (weights.map(\.kg).min() ?? 0) - 0.5
-                let high = (weights.map(\.kg).max() ?? 1) + 0.5
-                Path { path in
-                    for (i, entry) in weights.enumerated() {
-                        let x = CGFloat(i) / CGFloat(max(weights.count - 1, 1)) * geo.size.width
-                        let y = geo.size.height * (1 - CGFloat((entry.kg - low) / (high - low)))
-                        if i == 0 { path.move(to: CGPoint(x: x, y: y)) } else { path.addLine(to: CGPoint(x: x, y: y)) }
-                    }
-                }.stroke(Ink.blue, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-            }.frame(height: 85)
-            Text("\(weights.count) entries · follow the weekly mean, not one day").font(.caption).foregroundColor(Ink.muted)
-        }.accessibilityLabel("Recent weight trend, \(weights.count) entries")
+            SectionHeading(title: "Energy estimate")
+            if store.data.profile.energyAvailable {
+                LabeledValue(label: "Resting · Mifflin–St Jeor", value: "~\(Int(store.data.profile.bmr)) kcal/day")
+                LabeledValue(label: "Maintenance", value: "~\(Int(store.data.profile.tdee)) kcal/day")
+                if let plan = store.data.profile.activityPlan, plan.confirmed {
+                    LabeledValue(label: "Net gym average · included once", value: "~\(Int(plan.dailyExercise(weight: store.data.profile.weight))) kcal/day")
+                } else { Text("Your old activity factor remains active. Confirm the home + gym plan to replace the broad activity categories.").font(.system(size: 12)).foregroundColor(Ink.muted) }
+                if let observed = store.observedTDEE {
+                    LabeledValue(label: "14-day observed estimate", value: "~\(Int(observed)) kcal/day")
+                    Button("Review & use observed estimate") { review = true }.font(.system(size: 13))
+                } else {
+                    Text("Calibration needs 14 completed intake days and at least 4 distinct weigh-in days each week. A few food entries do not count as complete days.").font(.system(size: 12)).foregroundColor(Ink.muted)
+                }
+                if let date = store.data.profile.maintenanceUpdated, store.data.profile.tdee != store.data.profile.equationTDEE {
+                    Text("Using observed estimate from \(date.formatted(date: .abbreviated, time: .omitted)). Valid for 28 days.").font(.system(size: 11)).foregroundColor(Ink.muted)
+                    Button("Return to activity-based estimate") { store.data.profile.maintenanceOverride = nil; store.data.profile.maintenanceUpdated = nil; store.save() }.font(.system(size: 12))
+                }
+            } else { Text("Complete an adult profile to calculate energy targets. The adult equation is not a calorie prescription for minors or pregnancy.").font(.system(size: 13)).foregroundColor(Ink.muted) }
+            Text("These formulas estimate energy needs. Intake labels, logging errors and water-weight changes limit accuracy; the app cannot measure metabolism.").font(.system(size: 11)).foregroundColor(Ink.muted)
+        }
     }
 }
 struct FoodView: View {
@@ -153,31 +160,31 @@ struct CutView: View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 23) {
-                    HStack { InkIcon(name: "skull", size: 105); Spacer(); Text("CUT\nWITH\nCONTROL.").font(.system(size: 32, weight: .black, design: .serif)) }
-                    Text("You don’t need the harshest deficit. You need the smallest one that produces a sustainable trend.").foregroundColor(Ink.muted)
+                    HStack(spacing: 12) { InkIcon(name: "skull", size: 38); Text("Cut plan").font(.system(size: 22, weight: .semibold)); Spacer() }
+                    Text("Review your measurements, health screening and recovery before choosing a deficit.").font(.system(size: 14)).foregroundColor(Ink.muted)
                     Action(title: "Review body & health questions") { profile = true }
                     Toggle("I can protect adequate sleep", isOn: $sleep)
                     Toggle("I can maintain strength training & regular meals", isOn: $training)
                     Toggle("I have dizziness, fainting or severe fatigue", isOn: $dizzy)
-                    Text("How hard do you want to push?").font(.system(size: 23, weight: .medium, design: .serif))
+                    SectionHeading(title: "Daily deficit")
                     Picker("Deficit", selection: $intensity) {
                         Text("Steady 10%").tag(0.10); Text("Focused 15%").tag(0.15); Text("Intensive 20%").tag(0.20); Text("Aggressive 25%").tag(0.25)
                     }.pickerStyle(.menu)
                     Text("Aggressive is optional, not a requirement. This app caps the estimated deficit at 25% and uses conservative calorie floors. Those limits do not make a plan safe for every person.").font(.system(size: 13)).foregroundColor(Ink.muted)
                     Card {
                         if eligible {
-                            Text("ESTIMATED DAILY TARGET").font(.system(size: 10, design: .monospaced)).tracking(2).foregroundColor(Ink.blue)
+                            Text("Estimated daily target").font(.system(size: 13)).foregroundColor(Ink.muted)
                             Text("~\(Int(plan.target)) kcal").font(.system(size: 36, weight: .medium, design: .rounded))
                             Text("Maintenance estimate: \(Int(plan.tdee)) kcal. Actual deficit: \(Int(plan.tdee - plan.target)) kcal/day. Rough pace: \(String(format: "%.2f", max(0, plan.tdee - plan.target) * 7 / 7700)) kg/week.").font(.system(size: 14)).foregroundColor(Ink.muted)
                             Text("The pace is a rough energy calculation, not a forecast. Reassess after two weeks using weekly means. Rapid loss, worsening performance or obsessive tracking are reasons to ease off and get help.").font(.caption).foregroundColor(Ink.muted)
                             Toggle("I reviewed my measurements and health answers", isOn: $reviewed)
                             Action(title: "Use this cut plan") { store.data.profile.intensity = intensity; store.save(); dismiss() }.disabled(!reviewed)
                         } else {
-                            Text("Finish the screening first.").font(.system(size: 23, weight: .medium, design: .serif))
+                            Text("Complete the screening").font(.system(size: 20, weight: .semibold))
                             Text(!plan.cutEligible ? "A calorie deficit is unavailable when your profile is incomplete, you’re under 18, your weight or goal is too low, or a health concern applies. Review your answers and work with a qualified clinician if needed." : dizzy ? "Do not intensify the cut with these symptoms. Pause and get medical advice; fainting or severe symptoms need urgent care." : "Protect sleep and regular meals, and confirm a realistic training plan before starting an intensive cut.").font(.system(size: 14)).foregroundColor(Ink.muted)
                         }
                     }
-                    Text("CHECK THE COST, NOT JUST THE SCALE").font(.system(size: 10, design: .monospaced)).tracking(2).foregroundColor(Ink.blue)
+                    SectionHeading(title: "Weekly review")
                     Text("Weekly: review sleep, hunger, mood, strength and concentration. Persistent coldness, dizziness, menstrual changes, binge urges or compulsive weighing mean the plan needs reassessment.").font(.system(size: 14)).foregroundColor(Ink.muted)
                     Link("Read CDC guidance on gradual weight loss", destination: URL(string: "https://www.cdc.gov/healthy-weight-growth/losing-weight/index.html")!).font(.caption)
                 }.padding(24)

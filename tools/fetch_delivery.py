@@ -35,7 +35,7 @@ for artifact in artifacts:
         url=response.geturl(); length=int(response.headers['Content-Length'])
     target=ROOT/'artifacts'/run/artifact['name']; target.mkdir(parents=True,exist_ok=True)
     with zipfile.ZipFile(RemoteZip(url,length)) as archive:
-        chosen=[n for n in archive.namelist() if not n.endswith('/') and (n in ['output/REACH-1.0.ipa','output/SHA256.txt','output/core-tests.txt','output/REACH-preview.png','build.log','uitest.log','output/screenshots/manifest.json'] or n.startswith('output/screenshots/') and n.endswith('.png'))]
+        chosen=[n for n in archive.namelist() if not n.endswith('/') and (n in ['output/REACH-1.1.ipa','output/SHA256.txt','output/core-tests.txt','output/REACH-preview.png','build.log','uitest.log','output/screenshots/manifest.json'] or n.startswith('output/screenshots/') and n.endswith('.png'))]
         print(f'Fetching {len(chosen)} delivery files; skipping raw simulator result bundle',flush=True)
         for name in chosen:
             path=(target/name).resolve()

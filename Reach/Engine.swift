@@ -13,9 +13,22 @@ struct Profile: Codable {
     var eatingRisk = false
     var pregnant = false
     var configured = false
+    var activityPlan: ActivityPlan?
+    var maintenanceOverride: Double?
+    var maintenanceUpdated: Date?
     var bmi: Double { weight / pow(height / 100, 2) }
     var bmr: Double { 10 * weight + 6.25 * height - 5 * Double(age) + (sex == "Male" ? 5 : -161) }
-    var tdee: Double { bmr * activity }
+    var equationTDEE: Double {
+        if let plan = activityPlan { return bmr * 1.2 + plan.dailyExercise(weight: weight) }
+        return bmr * activity
+    }
+    var tdee: Double {
+        if let value = maintenanceOverride, let updated = maintenanceUpdated,
+           Date().timeIntervalSince(updated) >= 0, Date().timeIntervalSince(updated) < 28 * 86400,
+           value.isFinite, (1200...5000).contains(value) { return value }
+        return equationTDEE
+    }
+    var energyAvailable: Bool { configured && age >= 18 && !pregnant }
     var cutEligible: Bool { configured && age >= 18 && bmi >= 20 && goal / pow(height / 100, 2) >= 18.5 && goal < weight && !medicalRisk && !eatingRisk && !pregnant }
     var floor: Double { sex == "Male" ? 1500 : 1200 }
     var target: Double { cutEligible ? max(floor, tdee * (1 - min(intensity, 0.25))) : tdee }
@@ -59,9 +72,85 @@ struct Snapshot: Codable {
     var favoriteQuotes: [String] = []
     var start = Date()
     var completedIntakeDays: [Date]? = []
+    var caffeine: [CaffeineDose]?
+    var caffeineSettings: CaffeineSettings?
+    var workouts: [Workout]?
+    var extendedFieldsValid: Bool {
+        if let plan = profile.activityPlan {
+            guard (0...7).contains(plan.gymDays), plan.sessionMinutes.isFinite, (0...240).contains(plan.sessionMinutes), [3.5, 5.0, 6.0].contains(plan.met),
+                  !plan.confirmed || plan.gymDays == 0 || plan.sessionMinutes > 0 else { return false }
+        }
+        if let value = profile.maintenanceOverride { guard value.isFinite, (1200...5000).contains(value) else { return false } }
+        if let config = caffeineSettings {
+            guard config.halfLifeHours.isFinite, (2...12).contains(config.halfLifeHours), (0...23).contains(config.bedtimeHour), (0...59).contains(config.bedtimeMinute),
+                  config.abeCaffeine.isFinite, (1...500).contains(config.abeCaffeine), [10.5, 12.5].contains(config.abeServingGrams) else { return false }
+        }
+        guard (caffeine ?? []).allSatisfy({ $0.mg.isFinite && (0.1...2000).contains($0.mg) }),
+              (workouts ?? []).allSatisfy({ $0.minutes.isFinite && (1...240).contains($0.minutes) && [3.5, 5.0, 6.0].contains($0.met) }) else { return false }
+        return true
+    }
+}
+
+struct ActivityPlan: Codable {
+    var gymDays = 0
+    var sessionMinutes = 0.0
+    var met = 3.5
+    var confirmed = false
+    func dailyExercise(weight: Double) -> Double {
+        guard confirmed else { return 0 }
+        return Fitness.netExerciseCalories(weight: weight, minutes: sessionMinutes, met: met) * Double(gymDays) / 7
+    }
+}
+struct Workout: Codable, Identifiable {
+    var id = UUID()
+    var date = Date()
+    var minutes: Double
+    var met: Double
+    var kind: String
+}
+struct CaffeineDose: Codable, Identifiable {
+    var id = UUID()
+    var date = Date()
+    var name: String
+    var mg: Double
+}
+struct CaffeineSettings: Codable {
+    var halfLifeHours = 5.0
+    var bedtimeHour = 23
+    var bedtimeMinute = 0
+    var abeCaffeine = 200.0
+    var abeServingGrams = 12.5
+    var abeLabelConfirmed = false
+}
+enum Caffeine {
+    // First-order elimination, assuming the logged dose is available at ingestion.
+    // This is a load estimate, not measured blood concentration or an absorption model.
+    static func remaining(_ doses: [CaffeineDose], at date: Date, halfLife: Double) -> Double {
+        guard halfLife.isFinite, halfLife > 0 else { return 0 }
+        return doses.filter { $0.date <= date }.reduce(0) { total, dose in
+            guard dose.mg.isFinite, dose.mg >= 0 else { return total }
+            return total + dose.mg * pow(0.5, date.timeIntervalSince(dose.date) / (3600 * halfLife))
+        }
+    }
+    static func intake(_ doses: [CaffeineDose], at date: Date) -> Double {
+        doses.filter { $0.date <= date && $0.date > date.addingTimeInterval(-86400) }.reduce(0) { $0 + $1.mg }
+    }
+    static func nextBedtime(settings: CaffeineSettings, after date: Date) -> Date {
+        Calendar.current.nextDate(after: date, matching: DateComponents(hour: settings.bedtimeHour, minute: settings.bedtimeMinute), matchingPolicy: .nextTime) ?? date.addingTimeInterval(86400)
+    }
+    static func below(_ threshold: Double, doses: [CaffeineDose], after date: Date, halfLife: Double) -> Date? {
+        guard threshold > 0, halfLife > 0 else { return nil }
+        let current = remaining(doses, at: date, halfLife: halfLife)
+        if current <= threshold { return date }
+        return date.addingTimeInterval(halfLife * 3600 * log2(current / threshold))
+    }
 }
 
 enum Fitness {
+    static func netExerciseCalories(weight: Double, minutes: Double, met: Double) -> Double {
+        guard weight.isFinite, minutes.isFinite, met.isFinite, weight > 0, minutes >= 0 else { return 0 }
+        return max(0, met - 1) * 3.5 * weight / 200 * minutes
+    }
     static func mean(_ values: [Double]) -> Double? {
         values.isEmpty ? nil : values.reduce(0, +) / Double(values.count)
     }
@@ -77,7 +166,9 @@ enum Fitness {
         guard days.count == 14, confirmed.count == 14 else { return nil }
         let first = weights.filter { $0.date >= start && $0.date < middle }.map(\.kg)
         let second = weights.filter { $0.date >= middle && $0.date < today }.map(\.kg)
-        guard first.count >= 4, second.count >= 4, let a = mean(first), let b = mean(second) else { return nil }
+        let firstDays = Set(weights.filter { $0.date >= start && $0.date < middle }.map { cal.startOfDay(for: $0.date) })
+        let secondDays = Set(weights.filter { $0.date >= middle && $0.date < today }.map { cal.startOfDay(for: $0.date) })
+        guard firstDays.count >= 4, secondDays.count >= 4, let a = mean(first), let b = mean(second) else { return nil }
         let estimate = food.reduce(0) { $0 + $1.calories } / 14 - (b - a) * 7700 / 7
         guard estimate.isFinite, estimate >= 1200, estimate <= 5000 else { return nil }
         return estimate
