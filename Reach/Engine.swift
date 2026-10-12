@@ -95,6 +95,8 @@ let quotes: [Quote] = [
     Quote(id: "q5339", words: "A person will only have what they strive for.", arabic: "وَأَن لَّيْسَ لِلْإِنسَانِ إِلَّا مَا سَعَىٰ", source: "Qur’an 53:39 · English meaning", url: "https://quran.com/53/39", category: "Faith"),
     Quote(id: "q1311", words: "Allah does not change a people’s condition until they change what is in themselves.", arabic: "إِنَّ اللَّهَ لَا يُغَيِّرُ مَا بِقَوْمٍ حَتَّىٰ يُغَيِّرُوا مَا بِأَنفُسِهِمْ", source: "Qur’an 13:11 · excerpt, English meaning", url: "https://quran.com/13/11", category: "Faith"),
     Quote(id: "epictetus", words: "First say to yourself what you would be; and then do what you have to do.", source: "Epictetus · Discourses, Book III, chapter 23", url: "https://www.gutenberg.org/ebooks/10661", category: "Stoic"),
+    Quote(id: "sun7", words: "Ponder and deliberate before you make a move.", source: "Sun Tzu · The Art of War, VII.21 · Lionel Giles translation", url: "https://www.gutenberg.org/files/132/132-h/132-h.htm", category: "Warrior"),
+    Quote(id: "sun11", words: "On desperate ground, fight.", source: "Sun Tzu · The Art of War, XI.14 · Lionel Giles translation", url: "https://www.gutenberg.org/files/132/132-h/132-h.htm", category: "Warrior"),
     Quote(id: "power29", words: "Plan all the way to the end.", source: "Robert Greene · The 48 Laws of Power, Law 29", category: "Power"),
     Quote(id: "power9", words: "Win through your actions, never through argument.", source: "Robert Greene · The 48 Laws of Power, Law 9", category: "Power"),
     Quote(id: "reach1", words: "The version of you that you respect is built when nobody is watching.", source: "REACH · original", category: "Resolve"),

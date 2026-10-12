@@ -54,7 +54,7 @@ struct Page<Content: View>: View {
             VStack(alignment: .leading, spacing: 22) {
                 VStack(alignment: .leading, spacing: 9) {
                     Text(eyebrow.uppercased()).font(.system(size: 10, weight: .bold, design: .monospaced)).tracking(4).foregroundColor(Ink.blue)
-                    Text(title).font(.system(size: 39, weight: .bold, design: .serif)).foregroundColor(Ink.ivory)
+                    Text(title.uppercased()).font(.custom("BebasNeue-Regular", size: 48, relativeTo: .largeTitle)).tracking(0.8).foregroundColor(Ink.ivory)
                     Text(subtitle).font(.system(size: 14)).foregroundColor(Ink.muted).fixedSize(horizontal: false, vertical: true)
                 }.padding(.top, 24)
                 content

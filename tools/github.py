@@ -10,6 +10,9 @@ def api(path, data=None, method=None):
 command=sys.argv[1]
 if command=='check':
     print(json.dumps({'account':api('/user')['login']}))
+elif command=='public':
+    r=api('/repos/'+REPO,{'private':False},'PATCH')
+    print(json.dumps({'repo':r['full_name'],'private':r['private']}))
 elif command=='create':
     try: r=api('/repos/'+REPO)
     except urllib.error.HTTPError as e:
@@ -22,6 +25,14 @@ elif command=='status':
 elif command=='logs':
     jobs=api('/repos/'+REPO+'/actions/runs/'+sys.argv[2]+'/jobs')['jobs']
     print(json.dumps([{'name':j['name'],'status':j['status'],'conclusion':j['conclusion'],'steps':j['steps']} for j in jobs]))
+elif command=='diagnose':
+    r=api('/repos/'+REPO+'/actions/runs/'+sys.argv[2])
+    print(json.dumps({k:r.get(k) for k in ['status','conclusion','check_suite_url','run_attempt']}))
+    suite=r['check_suite_url'].replace('https://api.github.com','')
+    for check in api(suite+'/check-runs')['check_runs']:
+        print(json.dumps({'name':check['name'],'output':check['output']}))
+        if check['output'].get('annotations_count'):
+            print(json.dumps(api('/repos/'+REPO+'/check-runs/'+str(check['id'])+'/annotations')))
 elif command=='download':
     artifacts=api('/repos/'+REPO+'/actions/runs/'+sys.argv[2]+'/artifacts')['artifacts']
     for a in artifacts:

@@ -24,6 +24,7 @@ targets:
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         NSCameraUsageDescription: Scan food barcodes to look up nutrition labels.
+        UIAppFonts: [BebasNeue-Regular.ttf, 'ReemKufi[wght].ttf']
     settings:
       base:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

@@ -181,6 +181,16 @@ let originalQuoteGroups: [(String, String)] = [
     Choose self-respect over the comfort of approval.
     """),
     ("Resolve", """
+    Stop giving your fucking future to a fifteen-second distraction.
+    The excuse is polished. The work is still untouched.
+    You said you wanted change. Give the next hour proof.
+    Don’t let the easy thing keep stealing the important thing.
+    Get off the sidelines of your own life.
+    You can keep negotiating, or you can start.
+    The screen gets your best hours. What does your life get?
+    Your potential is not a finished product.
+    Enough rehearsing the comeback. Do the first rep.
+    A hard day can still end with your word intact.
     Your future is not a spectator sport.
     A body needs fuel before it can honor ambition.
     Hunger is not a medal.
