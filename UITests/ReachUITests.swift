@@ -46,8 +46,13 @@ final class ReachUITests: XCTestCase {
         let amount = app.textFields["Caffeine amount"]; XCTAssertTrue(amount.waitForExistence(timeout: 5))
         let verified = app.switches["This caffeine/serving value matches my tub"]
         if verified.exists && verified.value as? String == "0" { verified.tap() }
-        app.swipeUp(); app.buttons["Save caffeine dose"].tap()
-        XCTAssertTrue(app.buttons["Log caffeine"].waitForExistence(timeout: 5))
+        XCTAssertEqual(verified.value as? String, "1")
+        let save = app.buttons["Save caffeine dose"]
+        if !save.isHittable { app.swipeUp() }
+        XCTAssertTrue(save.isEnabled); capture("14-Caffeine-entry", app: app); save.tap()
+        XCTAssertTrue(app.navigationBars["Log caffeine"].waitForNonExistence(timeout: 5))
+        for _ in 0..<5 { if app.buttons["Delete caffeine dose"].isHittable { break }; app.swipeUp() }
+        XCTAssertTrue(app.buttons["Delete caffeine dose"].exists)
         app.terminate(); app.launch(); app.buttons["Caffeine"].tap()
         for _ in 0..<5 { if app.staticTexts["Dose history"].isHittable { break }; app.swipeUp() }
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "caffeineDoseRow").firstMatch.waitForExistence(timeout: 5))
