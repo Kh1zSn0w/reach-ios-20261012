@@ -41,6 +41,21 @@ elif command=='diagnose':
         print(json.dumps({'name':check['name'],'output':check['output']}))
         if check['output'].get('annotations_count'):
             print(json.dumps(api('/repos/'+REPO+'/check-runs/'+str(check['id'])+'/annotations')))
+elif command=='joblog':
+    jobs=api('/repos/'+REPO+'/actions/runs/'+sys.argv[2]+'/jobs')['jobs']
+    class NoAuthRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            result=super().redirect_request(req,fp,code,msg,headers,newurl)
+            if result: result.remove_header('Authorization')
+            return result
+    for job in jobs:
+        req=urllib.request.Request('https://api.github.com/repos/'+REPO+'/actions/jobs/'+str(job['id'])+'/logs',headers={'Authorization':'Bearer '+token(),'Accept':'application/vnd.github+json','User-Agent':'REACH-builder'})
+        try:
+            with urllib.request.build_opener(NoAuthRedirect).open(req,timeout=30) as r: result=r.read().decode(errors='replace')
+            target=ROOT/'artifacts'/sys.argv[2]; target.mkdir(parents=True,exist_ok=True)
+            (target/'job.log').write_text(result,encoding='utf-8')
+            print('\n'.join(result.splitlines()[-60:]))
+        except urllib.error.HTTPError as e: print('Job log unavailable: '+str(e.code))
 elif command=='download':
     artifacts=api('/repos/'+REPO+'/actions/runs/'+sys.argv[2]+'/artifacts')['artifacts']
     for a in artifacts:
@@ -51,6 +66,6 @@ elif command=='download':
                 if result: result.remove_header('Authorization')
                 return result
         with urllib.request.build_opener(Redirect).open(req,timeout=90) as r: data=r.read()
-        target=ROOT/'artifacts'/a['name'];target.mkdir(parents=True,exist_ok=True)
+        target=ROOT/'artifacts'/sys.argv[2]/a['name'];target.mkdir(parents=True,exist_ok=True)
         with zipfile.ZipFile(io.BytesIO(data)) as z: z.extractall(target)
         print(str(target))
