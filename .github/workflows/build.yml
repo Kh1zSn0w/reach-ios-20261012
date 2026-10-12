@@ -24,7 +24,8 @@ jobs:
       - name: Verify fitness logic and quote library
         run: |
           swiftc Reach/Engine.swift Reach/QuoteLibrary.swift Tests/main.swift -o /tmp/reach-tests
-          /tmp/reach-tests
+          mkdir -p output
+          /tmp/reach-tests | tee output/core-tests.txt
       - name: Build iPhone app
         run: |
           set -o pipefail
@@ -41,6 +42,12 @@ jobs:
           echo "$DEVICE" > simulator.txt
           xcodebuild -project Reach.xcodeproj -scheme Reach -configuration Debug -destination "platform=iOS Simulator,id=$DEVICE" -derivedDataPath simbuild CODE_SIGNING_ALLOWED=NO -resultBundlePath UITestResults.xcresult test 2>&1 | tee uitest.log
           xcrun simctl io "$DEVICE" screenshot output/REACH-preview.png
+      - name: Export screen captures
+        if: always()
+        run: |
+          if [ -d UITestResults.xcresult ]; then
+            xcrun xcresulttool export attachments --path UITestResults.xcresult --output-path output/screenshots
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -49,6 +56,8 @@ jobs:
             output/REACH-1.0.ipa
             output/SHA256.txt
             output/REACH-preview.png
+            output/core-tests.txt
+            output/screenshots/
             build.log
             uitest.log
             UITestResults.xcresult
