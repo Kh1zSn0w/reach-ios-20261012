@@ -21,6 +21,9 @@ elif command=='repo':
 elif command=='cancel':
     api('/repos/'+REPO+'/actions/runs/'+sys.argv[2]+'/cancel',{},'POST')
     print('Cancelled superseded run '+sys.argv[2])
+elif command=='package':
+    api('/repos/'+REPO+'/actions/workflows/build.yml/dispatches',{'ref':'main','inputs':{'package_only':True}},'POST')
+    print('Dispatched metadata package build; app UI code already tested')
 elif command=='create':
     try: r=api('/repos/'+REPO)
     except urllib.error.HTTPError as e:
