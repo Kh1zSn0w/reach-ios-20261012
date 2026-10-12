@@ -15,6 +15,7 @@ struct RootView: View {
     @State private var tab = 0
     @State private var onboarding = false
     @State private var tempted = false
+    @AppStorage("introSeen") private var introSeen = false
     var body: some View {
         ZStack(alignment: .bottom) {
             Group {
@@ -36,7 +37,7 @@ struct RootView: View {
         }.foregroundColor(Ink.ivory)
             .sheet(isPresented: $onboarding) { ProfileView() }
             .fullScreenCover(isPresented: $tempted) { TemptedView() }
-            .onAppear { onboarding = !store.data.profile.configured }
+            .onAppear { onboarding = !introSeen && !store.data.profile.configured; introSeen = true }
             .alert("Journal needs attention", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) {
                 Button("Keep original data", role: .cancel) {}
             } message: { Text(store.error ?? "") }

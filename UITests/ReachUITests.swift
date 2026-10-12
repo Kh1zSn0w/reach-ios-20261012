@@ -28,7 +28,9 @@ final class ReachUITests: XCTestCase {
         let kcal = app.textFields["Calories per 100 g"]; kcal.tap(); kcal.typeText("200")
         app.swipeUp(); app.buttons["Add to food log"].tap()
         app.swipeUp(); XCTAssertTrue(app.staticTexts["Test yogurt"].waitForExistence(timeout: 5))
-        app.terminate(); app.launch(); app.buttons["Body"].tap(); app.swipeUp(); XCTAssertTrue(app.staticTexts["Test yogurt"].waitForExistence(timeout: 5))
+        app.terminate(); app.launch()
+        if app.buttons["Close"].waitForExistence(timeout: 2) { app.buttons["Close"].tap() }
+        app.buttons["Body"].tap(); app.swipeUp(); XCTAssertTrue(app.staticTexts["Test yogurt"].waitForExistence(timeout: 5))
         capture("10-Persisted-food", app: app)
     }
 }
